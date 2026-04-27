@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 学校1校 = 1テナント
+model Tenant {
+  id                 String   @id @default(uuid())
+  name               String
+  slug               String   @unique
+  /// Google hosted domain 制限（例: school.example.jp）
+  googleHostedDomain String?
+  createdAt          DateTime @default(now())
+  users              User[]
+  posts              Post[]
+  tags               Tag[]
+}
+
+/// Google ログイン前に運用で作成。メールは全体で一意（MVP: 1メール = 1校所属）。
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  tenantId      String
+  /// JWT / ミドルウェアで Prisma なし参照するため Tenant.slug と同期
+  tenantSlug    String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  posts         Post[]
+
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// 中学校向け指導要領ベースの単元マスタ
+model CurriculumUnit {
+  id         String   @id @default(cuid())
+  schoolType String
+  subject    String
+  grade      String
+  category   String?
+  name       String
+  aliases    String[]
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([schoolType, subject, grade, name])
+  @@index([schoolType, subject, grade, isActive])
+}
+
+enum AttachmentKind {
+  pdf
+  slide
+  image
+  video
+}
+
+/// 授業実践の共有投稿
+model Post {
+  id          String   @id @default(cuid())
+  tenantId    String
+  authorId    String
+  /// 一覧表示用の短いタイトル（任意だが UI では推奨）
+  title       String?
+  grade       String
+  subject     String
+  unit        String
+  /// 単元をさらに細分化した内容項目（任意）
+  contentItem String?
+  aim         String
+  reflection  String?  @db.Text
+  point       String?  @db.Text
+  flow        String?    @db.Text
+  /// 検索用に結合したテキスト（アプリが更新）
+  searchText  String     @default("") @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags        PostTag[]
+  attachments Attachment[]
+
+  @@index([tenantId])
+  @@index([tenantId, grade])
+  @@index([tenantId, subject])
+  @@index([tenantId, unit])
+}
+
+model Tag {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String /// #なし・小文字正規化
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  posts    PostTag[]
+
+  @@unique([tenantId, name])
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model Attachment {
+  id               String          @id @default(cuid())
+  postId           String
+  kind             AttachmentKind
+  mimeType         String
+  sizeBytes        Int
+  originalFilename String
+  storageKey       String          @unique
+  createdAt        DateTime        @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
