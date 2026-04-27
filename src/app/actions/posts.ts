@@ -35,6 +35,7 @@ export type PostSearchParams = {
   subject?: string;
   unit?: string;
   tag?: string;
+  authorId?: string;
 };
 
 export type CurriculumUnitOption = {
@@ -109,6 +110,7 @@ export async function listPosts(
   if (params.unit?.trim())
     filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });
   if (tag) filters.push({ tags: { some: { tag: { name: tag } } } });
+  if (params.authorId) filters.push({ authorId: params.authorId });
   if (q) {
     filters.push({
       OR: [

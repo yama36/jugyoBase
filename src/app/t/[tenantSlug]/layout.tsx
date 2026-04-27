@@ -39,6 +39,9 @@ export default async function TenantLayout({
               >
                 新規投稿
               </Link>
+              <Link href={`/t/${tenantSlug}/mypage`} className="hover:text-zinc-900">
+                マイページ
+              </Link>
               <form action={signOutFromApp}>
                 <button
                   type="submit"
