@@ -104,7 +104,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const user = await prisma.user.findUnique({
         where: { email },
       });
-      if (!user || user.tenantId !== tenant.id || user.tenantSlug !== slug) {
+      if (!user) {
+        if (tenant.googleHostedDomain) {
+          // ドメイン検証済み → 初回ログイン時に自動登録（role: teacher）
+          await prisma.user.create({
+            data: {
+              email,
+              name: email.split("@")[0],
+              tenantId: tenant.id,
+              tenantSlug: slug,
+              role: "teacher" as any,
+            },
+          });
+          return true;
+        }
+        return false;
+      }
+      if (user.tenantId !== tenant.id || user.tenantSlug !== slug) {
         return false;
       }
 
