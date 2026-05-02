@@ -56,6 +56,12 @@ export default async function AdminCurriculumPage({
           <span className="font-medium text-zinc-900 underline underline-offset-4">
             単元マスタ
           </span>
+          <Link
+            href={`/t/${tenantSlug}/admin/settings`}
+            className="text-zinc-500 hover:text-zinc-800"
+          >
+            学校設定
+          </Link>
         </nav>
       </div>
 

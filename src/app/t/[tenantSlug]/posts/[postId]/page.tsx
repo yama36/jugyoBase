@@ -4,8 +4,10 @@ import { auth } from "@/auth";
 import { getPost } from "@/app/actions/posts";
 import { listComments } from "@/app/actions/comments";
 import { getPostLikeInfo } from "@/app/actions/likes";
+import { getBookmarkStatus } from "@/app/actions/bookmarks";
 import { DeletePostButton } from "@/components/DeletePostButton";
 import { LikeButton } from "@/components/LikeButton";
+import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
 
@@ -18,10 +20,11 @@ export default async function PostDetailPage({
   const session = await auth();
   if (!session?.user?.tenantId) notFound();
 
-  const [post, comments, likeInfo] = await Promise.all([
+  const [post, comments, likeInfo, bookmarked] = await Promise.all([
     getPost(session.user.tenantId, postId),
     listComments(session.user.tenantId, postId),
     getPostLikeInfo(session.user.tenantId, postId, session.user.id),
+    getBookmarkStatus(postId, session.user.id),
   ]);
   if (!post) notFound();
 
@@ -61,6 +64,11 @@ export default async function PostDetailPage({
               initialLiked={likeInfo.liked}
               initialCount={likeInfo.count}
               canLike={canLike}
+            />
+            <BookmarkButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialBookmarked={bookmarked}
             />
             <Link
               href={`/t/${tenantSlug}/posts/${postId}/print`}

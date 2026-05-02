@@ -172,6 +172,10 @@ export default async function PostsPage({
                     {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
                   </p>
                 ) : null}
+                <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
+                  <span>♥ {(post as any)._count?.likes ?? 0}</span>
+                  <span>💬 {(post as any)._count?.comments ?? 0}</span>
+                </div>
               </Link>
             </li>
           ))

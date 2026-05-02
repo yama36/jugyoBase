@@ -51,6 +51,12 @@ export default async function AdminUsersPage({
           >
             単元マスタ
           </Link>
+          <Link
+            href={`/t/${tenantSlug}/admin/settings`}
+            className="text-zinc-500 hover:text-zinc-800"
+          >
+            学校設定
+          </Link>
         </nav>
       </div>
 

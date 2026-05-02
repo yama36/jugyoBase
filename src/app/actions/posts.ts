@@ -131,7 +131,8 @@ export async function listPosts(
         author: { select: { id: true, name: true, image: true } },
         tags: { include: { tag: true } },
         attachments: true,
-      },
+        _count: { select: { likes: true, comments: true } },
+      } as any,
     }),
   );
 }

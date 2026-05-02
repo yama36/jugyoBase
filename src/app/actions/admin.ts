@@ -183,3 +183,41 @@ export async function toggleCurriculumUnitActive(
     return { ok: false, message: "更新に失敗しました" };
   }
 }
+
+export async function getTenantSettings(tenantId: string) {
+  return prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      name: true,
+      schoolType: true,
+      prefecture: true,
+      googleHostedDomain: true,
+    },
+  });
+}
+
+export async function updateTenantSettings(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const tenantSlug = String(formData.get("tenantSlug") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const schoolType = String(formData.get("schoolType") ?? "");
+  const prefecture = String(formData.get("prefecture") ?? "").trim() || null;
+  const googleHostedDomain =
+    String(formData.get("googleHostedDomain") ?? "").trim() || null;
+
+  if (!name) return { ok: false, message: "学校名は必須です" };
+
+  try {
+    const session = await requireAdmin(tenantSlug);
+    await prisma.tenant.update({
+      where: { id: session.user.tenantId },
+      data: { name, schoolType: schoolType as any, prefecture, googleHostedDomain },
+    });
+    revalidatePath(`/t/${tenantSlug}/admin/settings`);
+    return { ok: true };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, message: "更新に失敗しました" };
+  }
+}

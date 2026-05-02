@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { listPosts } from "@/app/actions/posts";
+import { listBookmarkedPosts } from "@/app/actions/bookmarks";
 
 export default async function MyPage({
   params,
@@ -13,10 +14,13 @@ export default async function MyPage({
     return null;
   }
 
-  const posts = await listPosts(session.user.tenantId, {
-    authorId: session.user.id,
-    includeDrafts: true,
-  });
+  const [posts, bookmarkedPosts] = await Promise.all([
+    listPosts(session.user.tenantId, {
+      authorId: session.user.id,
+      includeDrafts: true,
+    }),
+    listBookmarkedPosts(session.user.tenantId, session.user.id),
+  ]);
 
   const published = posts.filter((p) => (p as any).isPublished !== false);
   const drafts = posts.filter((p) => (p as any).isPublished === false);
@@ -29,6 +33,12 @@ export default async function MyPage({
           <p className="mt-1 text-sm text-zinc-600">
             自分が投稿した授業実践を管理できます
           </p>
+          <Link
+            href={`/t/${tenantSlug}/profile/edit`}
+            className="mt-2 inline-block text-sm text-zinc-500 underline-offset-2 hover:underline"
+          >
+            プロフィール編集
+          </Link>
         </div>
         {session.user.role !== "readonly" ? (
           <Link
@@ -120,6 +130,51 @@ export default async function MyPage({
             ))
           )}
         </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-zinc-600">
+          ブックマーク（{bookmarkedPosts.length}件）
+        </h2>
+        {bookmarkedPosts.length === 0 ? (
+          <div className="rounded border border-dashed border-zinc-300 bg-white p-6 text-center text-sm text-zinc-600">
+            ブックマークした授業実践がここに表示されます
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {bookmarkedPosts.map((post) => (
+              <li key={post.id}>
+                <Link
+                  href={`/t/${tenantSlug}/posts/${post.id}`}
+                  className="block rounded-lg border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <span className="text-amber-500">★</span>
+                      <h2 className="font-medium text-zinc-900">
+                        {post.title?.trim() || "（無題）"}
+                      </h2>
+                    </span>
+                    <time
+                      dateTime={post.createdAt.toISOString()}
+                      className="text-xs text-zinc-500"
+                    >
+                      {post.createdAt.toLocaleDateString("ja-JP")}
+                    </time>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-600">
+                    {post.grade} / {post.subject} / {post.unit}
+                  </p>
+                  {post.tags.length > 0 ? (
+                    <p className="mt-2 text-xs text-sky-700">
+                      {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                    </p>
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
