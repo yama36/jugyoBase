@@ -7,14 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SchoolType {
+  elementary
+  middle
+  high
+  special
+}
+
+enum UserRole {
+  admin
+  teacher
+}
+
+enum NotificationType {
+  comment
+  like
+  mention
+}
+
 /// 学校1校 = 1テナント
 model Tenant {
-  id                 String   @id @default(uuid())
+  id                 String     @id @default(uuid())
   name               String
-  slug               String   @unique
+  slug               String     @unique
   /// Google hosted domain 制限（例: school.example.jp）
   googleHostedDomain String?
-  createdAt          DateTime @default(now())
+  schoolType         SchoolType @default(elementary)
+  prefecture         String?
+  timezone           String     @default("Asia/Tokyo")
+  createdAt          DateTime   @default(now())
   users              User[]
   posts              Post[]
   tags               Tag[]
@@ -30,11 +51,22 @@ model User {
   tenantId      String
   /// JWT / ミドルウェアで Prisma なし参照するため Tenant.slug と同期
   tenantSlug    String
+  role          UserRole  @default(teacher)
+  /// 担当教科（複数可）
+  subjects      String[]
+  /// 担当学年（複数可）
+  grades        String[]
+  position      String?
+  bio           String?
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   posts         Post[]
 
-  accounts Account[]
-  sessions Session[]
+  accounts      Account[]
+  sessions      Session[]
+  comments      Comment[]
+  likes         PostLike[]
+  bookmarks     Bookmark[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,7 +93,7 @@ model Account {
 
 model Session {
   id           String   @id @default(cuid())
-  sessionToken String @unique
+  sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -89,6 +121,8 @@ model CurriculumUnit {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  posts Post[]
+
   @@unique([schoolType, subject, grade, name])
   @@index([schoolType, subject, grade, isActive])
 }
@@ -102,42 +136,59 @@ enum AttachmentKind {
 
 /// 授業実践の共有投稿
 model Post {
-  id          String   @id @default(cuid())
-  tenantId    String
-  authorId    String
+  id               String          @id @default(cuid())
+  tenantId         String
+  authorId         String
   /// 一覧表示用の短いタイトル（任意だが UI では推奨）
-  title       String?
-  grade       String
-  subject     String
-  unit        String
+  title            String?
+  grade            String
+  subject          String
+  unit             String
   /// 単元をさらに細分化した内容項目（任意）
-  contentItem String?
-  aim         String
-  reflection  String?  @db.Text
-  point       String?  @db.Text
-  flow        String?    @db.Text
+  contentItem      String?
+  /// カリキュラムマスタとの紐付け（任意）
+  curriculumUnitId String?
+  /// 単元の何時間目か
+  lessonNumber     Int?
+  /// 単元の総時間数
+  totalLessons     Int?
+  aim              String
+  reflection       String?         @db.Text
+  point            String?         @db.Text
+  flow             String?         @db.Text
+  /// 1〜5 の自己評価
+  selfEvaluation   Int?
+  /// false = 下書き
+  isPublished      Boolean         @default(true)
   /// 検索用に結合したテキスト（アプリが更新）
-  searchText  String     @default("") @db.Text
+  searchText       String          @default("") @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tags        PostTag[]
-  attachments Attachment[]
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  curriculumUnit CurriculumUnit? @relation(fields: [curriculumUnitId], references: [id], onDelete: SetNull)
+  tags           PostTag[]
+  attachments    Attachment[]
+  comments       Comment[]
+  likes          PostLike[]
+  bookmarks      Bookmark[]
+  notifications  Notification[]
 
   @@index([tenantId])
   @@index([tenantId, grade])
   @@index([tenantId, subject])
   @@index([tenantId, unit])
+  @@index([tenantId, isPublished])
+  @@index([curriculumUnitId])
 }
 
 model Tag {
-  id       String @id @default(cuid())
+  id       String    @id @default(cuid())
   tenantId String
-  name     String /// #なし・小文字正規化
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String    /// #なし・小文字正規化
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   posts    PostTag[]
 
   @@unique([tenantId, name])
@@ -146,23 +197,76 @@ model Tag {
 model PostTag {
   postId String
   tagId  String
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([postId, tagId])
 }
 
 model Attachment {
-  id               String          @id @default(cuid())
+  id               String         @id @default(cuid())
   postId           String
   kind             AttachmentKind
   mimeType         String
   sizeBytes        Int
   originalFilename String
-  storageKey       String          @unique
-  createdAt        DateTime        @default(now())
+  storageKey       String         @unique
+  createdAt        DateTime       @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model PostLike {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+model Bookmark {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  postId    String?
+  /// アクションを起こしたユーザー
+  actorId   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
