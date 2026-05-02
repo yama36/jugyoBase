@@ -17,6 +17,7 @@ enum SchoolType {
 enum UserRole {
   admin
   teacher
+  readonly
 }
 
 enum NotificationType {
