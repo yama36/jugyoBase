@@ -270,6 +270,16 @@ export function PostEditor(props: Props) {
           <span>上記ポリシーと学校の運用に従い、適切な内容のみを投稿します</span>
         </label>
 
+        <label className="flex items-center gap-2 text-sm text-zinc-600">
+          <input
+            type="checkbox"
+            name="isDraft"
+            className="mt-0.5"
+            defaultChecked={props.mode === "edit" ? p?.isPublished === false : false}
+          />
+          <span>下書きとして保存する（一覧に表示されません）</span>
+        </label>
+
         {state && !state.ok ? (
           <p className="text-sm text-red-600">{state.message}</p>
         ) : null}

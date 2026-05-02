@@ -36,6 +36,7 @@ export type PostSearchParams = {
   unit?: string;
   tag?: string;
   authorId?: string;
+  includeDrafts?: boolean;
 };
 
 export type CurriculumUnitOption = {
@@ -105,6 +106,7 @@ export async function listPosts(
   const tag = params.tag?.trim().toLowerCase();
 
   const filters: Prisma.PostWhereInput[] = [];
+  if (!params.includeDrafts) filters.push({ isPublished: true } as Prisma.PostWhereInput);
   if (params.grade) filters.push({ grade: params.grade });
   if (params.subject) filters.push({ subject: params.subject });
   if (params.unit?.trim())
@@ -311,6 +313,8 @@ export async function createPost(
       console.warn("curriculum unit upsert failed", e);
     }
 
+    const isDraft = formData.get("isDraft") === "on";
+
     const post = await withTenantRls(tenantId, async (tx) => {
       const p = await tx.post.create({
         data: {
@@ -326,7 +330,8 @@ export async function createPost(
           point: data.point,
           flow: data.flow,
           searchText,
-        },
+          isPublished: !isDraft,
+        } as any,
       });
       await syncPostTags(tx, tenantId, p.id, tagNames);
       return p;
@@ -415,6 +420,8 @@ export async function updatePost(
       console.warn("curriculum unit upsert failed", e);
     }
 
+    const isDraft = formData.get("isDraft") === "on";
+
     await withTenantRls(tenantId, async (tx) => {
       await tx.post.update({
         where: { id: postId },
@@ -429,7 +436,8 @@ export async function updatePost(
           point: data.point,
           flow: data.flow,
           searchText,
-        },
+          isPublished: !isDraft,
+        } as any,
       });
       await syncPostTags(tx, tenantId, postId, tagNames);
     });

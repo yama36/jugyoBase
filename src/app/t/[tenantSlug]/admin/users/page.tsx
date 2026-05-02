@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/auth";
-import { listTenantUsers, updateUserRole } from "@/app/actions/admin";
+import { listTenantUsers, addUser, updateUserRole } from "@/app/actions/admin";
 import { RemoveUserButton } from "@/components/RemoveUserButton";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -39,12 +40,69 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-zinc-900">ユーザー管理</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          登録ユーザーのロール変更・削除ができます
-        </p>
+        <h1 className="text-xl font-semibold text-zinc-900">管理</h1>
+        <nav className="mt-2 flex gap-4 text-sm">
+          <span className="font-medium text-zinc-900 underline underline-offset-4">
+            ユーザー管理
+          </span>
+          <Link
+            href={`/t/${tenantSlug}/admin/curriculum`}
+            className="text-zinc-500 hover:text-zinc-800"
+          >
+            単元マスタ
+          </Link>
+        </nav>
       </div>
 
+      {/* 招待フォーム */}
+      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-zinc-800">ユーザーを追加</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Googleアカウントのメールアドレスを登録すると、ログインできるようになります。
+        </p>
+        <form action={addUser} className="mt-4 flex flex-wrap items-end gap-3">
+          <input type="hidden" name="tenantSlug" value={tenantSlug} />
+          <div>
+            <label className="block text-xs font-medium text-zinc-600">メールアドレス *</label>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="teacher@school.example"
+              className="mt-1 rounded border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600">名前（任意）</label>
+            <input
+              name="name"
+              type="text"
+              placeholder="山田 太郎"
+              className="mt-1 rounded border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600">ロール</label>
+            <select
+              name="role"
+              defaultValue="teacher"
+              className="mt-1 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none"
+            >
+              <option value="teacher">教員</option>
+              <option value="admin">管理者</option>
+              <option value="readonly">閲覧専用</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="rounded bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            追加
+          </button>
+        </form>
+      </section>
+
+      {/* ユーザー一覧 */}
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50">
@@ -52,7 +110,7 @@ export default async function AdminUsersPage({
               <th className="px-4 py-3 text-left font-medium text-zinc-600">名前 / メール</th>
               <th className="px-4 py-3 text-left font-medium text-zinc-600">現在のロール</th>
               <th className="px-4 py-3 text-left font-medium text-zinc-600">ロール変更</th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600"></th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
