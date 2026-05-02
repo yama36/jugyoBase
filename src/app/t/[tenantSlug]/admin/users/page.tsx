@@ -28,6 +28,9 @@ export default async function AdminUsersPage({
   if (!canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
+  if (!session?.user) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
   if (session.user.role !== "admin") {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -67,7 +70,12 @@ export default async function AdminUsersPage({
         <p className="mt-1 text-xs text-zinc-500">
           Googleアカウントのメールアドレスを登録すると、ログインできるようになります。
         </p>
-        <form action={addUser} className="mt-4 flex flex-wrap items-end gap-3">
+        <form
+          action={async (fd) => {
+            await addUser(fd);
+          }}
+          className="mt-4 flex flex-wrap items-end gap-3"
+        >
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <div>
             <label className="block text-xs font-medium text-zinc-600">メールアドレス *</label>
@@ -145,7 +153,12 @@ export default async function AdminUsersPage({
                     {isSelf ? (
                       <span className="text-xs text-zinc-400">変更不可</span>
                     ) : (
-                      <form action={updateUserRole} className="flex items-center gap-2">
+                      <form
+                        action={async (fd) => {
+                          await updateUserRole(fd);
+                        }}
+                        className="flex items-center gap-2"
+                      >
                         <input type="hidden" name="tenantSlug" value={tenantSlug} />
                         <input type="hidden" name="userId" value={user.id} />
                         <select

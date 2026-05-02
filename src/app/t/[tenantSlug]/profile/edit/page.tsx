@@ -31,7 +31,12 @@ export default async function ProfileEditPage({
         </p>
       </div>
 
-      <form action={updateProfile} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <form
+        action={async (fd) => {
+          await updateProfile(fd);
+        }}
+        className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
+      >
         <input type="hidden" name="tenantSlug" value={tenantSlug} />
 
         <div>

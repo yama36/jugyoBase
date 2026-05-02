@@ -32,6 +32,9 @@ export default async function AdminSettingsPage({
   if (!canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
+  if (!session?.user) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
   if (session.user.role !== "admin") {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -64,7 +67,9 @@ export default async function AdminSettingsPage({
       </div>
 
       <form
-        action={updateTenantSettings}
+        action={async (fd) => {
+          await updateTenantSettings(fd);
+        }}
         className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
       >
         <input type="hidden" name="tenantSlug" value={tenantSlug} />

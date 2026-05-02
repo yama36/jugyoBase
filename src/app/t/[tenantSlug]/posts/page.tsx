@@ -179,7 +179,9 @@ export default async function PostsPage({
                 </p>
                 {post.tags.length > 0 ? (
                   <p className="mt-2 text-xs text-sky-700">
-                    {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                    {(post as unknown as { tags: { tag: { name: string } }[] }).tags
+                      .map((pt) => `#${pt.tag.name}`)
+                      .join(" ")}
                   </p>
                 ) : null}
                 <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">

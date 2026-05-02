@@ -127,7 +127,9 @@ export default async function MyPage({
                   </p>
                   {post.tags.length > 0 ? (
                     <p className="mt-2 text-xs text-sky-700">
-                      {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                      {(post as unknown as { tags: { tag: { name: string } }[] }).tags
+                        .map((pt) => `#${pt.tag.name}`)
+                        .join(" ")}
                     </p>
                   ) : null}
                 </Link>
@@ -172,7 +174,9 @@ export default async function MyPage({
                   </p>
                   {post.tags.length > 0 ? (
                     <p className="mt-2 text-xs text-sky-700">
-                      {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+                      {(post as unknown as { tags: { tag: { name: string } }[] }).tags
+                        .map((pt) => `#${pt.tag.name}`)
+                        .join(" ")}
                     </p>
                   ) : null}
                 </Link>

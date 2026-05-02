@@ -26,6 +26,9 @@ export default async function AdminCurriculumPage({
   if (!canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
+  if (!session?.user) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
   if (session.user.role !== "admin") {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -72,7 +75,12 @@ export default async function AdminCurriculumPage({
         <p className="mt-1 text-xs text-zinc-500">
           投稿フォームの単元候補に追加されます。
         </p>
-        <form action={addCurriculumUnit} className="mt-4 flex flex-wrap items-end gap-3">
+        <form
+          action={async (fd) => {
+            await addCurriculumUnit(fd);
+          }}
+          className="mt-4 flex flex-wrap items-end gap-3"
+        >
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <input type="hidden" name="schoolType" value="junior_high" />
           <div>
@@ -159,7 +167,15 @@ export default async function AdminCurriculumPage({
                         {SCHOOL_TYPE_LABELS[unit.schoolType] ?? unit.schoolType}
                       </span>
                     </div>
-                    <form action={toggleCurriculumUnitActive.bind(null, tenantSlug, unit.id, !unit.isActive)}>
+                    <form
+                      action={async () => {
+                        await toggleCurriculumUnitActive(
+                          tenantSlug,
+                          unit.id,
+                          !unit.isActive,
+                        );
+                      }}
+                    >
                       <button
                         type="submit"
                         className={`rounded border px-2.5 py-1 text-xs transition ${

@@ -22,6 +22,9 @@ export default async function NotificationsPage({
   if (!canAccessTenantRoute(session, tenantSlug, { requireUserId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
+  if (!session?.user?.id) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
 
   const notifications = await listNotifications(session.user.id);
 
