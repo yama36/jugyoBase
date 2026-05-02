@@ -1,0 +1,117 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { listTenantUsers, updateUserRole } from "@/app/actions/admin";
+import { RemoveUserButton } from "@/components/RemoveUserButton";
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "管理者",
+  teacher: "教員",
+  readonly: "閲覧専用",
+};
+
+const ROLE_BADGE: Record<string, string> = {
+  admin: "bg-purple-100 text-purple-800 border-purple-200",
+  teacher: "bg-green-100 text-green-800 border-green-200",
+  readonly: "bg-zinc-100 text-zinc-600 border-zinc-200",
+};
+
+export default async function AdminUsersPage({
+  params,
+}: {
+  params: Promise<{ tenantSlug: string }>;
+}) {
+  const { tenantSlug } = await params;
+  const session = await auth();
+
+  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
+  if (session.user.role !== "admin") {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+        管理者権限が必要です
+      </div>
+    );
+  }
+
+  const users = await listTenantUsers(session.user.tenantId);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-zinc-900">ユーザー管理</h1>
+        <p className="mt-1 text-sm text-zinc-600">
+          登録ユーザーのロール変更・削除ができます
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="border-b border-zinc-200 bg-zinc-50">
+            <tr>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600">名前 / メール</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600">現在のロール</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600">ロール変更</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-600"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {users.map((user) => {
+              const isSelf = user.id === session.user.id;
+              return (
+                <tr key={user.id} className={isSelf ? "bg-zinc-50" : ""}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-zinc-900">
+                      {user.name ?? "（名前未設定）"}
+                      {isSelf ? (
+                        <span className="ml-2 text-xs text-zinc-400">（自分）</span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-zinc-500">{user.email}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE[user.role] ?? ROLE_BADGE.teacher}`}
+                    >
+                      {ROLE_LABELS[user.role] ?? user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {isSelf ? (
+                      <span className="text-xs text-zinc-400">変更不可</span>
+                    ) : (
+                      <form action={updateUserRole} className="flex items-center gap-2">
+                        <input type="hidden" name="tenantSlug" value={tenantSlug} />
+                        <input type="hidden" name="userId" value={user.id} />
+                        <select
+                          name="role"
+                          defaultValue={user.role}
+                          className="rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-800 focus:outline-none"
+                        >
+                          <option value="teacher">教員</option>
+                          <option value="admin">管理者</option>
+                          <option value="readonly">閲覧専用</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs hover:bg-zinc-50"
+                        >
+                          変更
+                        </button>
+                      </form>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {isSelf ? null : (
+                      <RemoveUserButton tenantSlug={tenantSlug} userId={user.id} />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getPost } from "@/app/actions/posts";
+import { listComments } from "@/app/actions/comments";
+import { getPostLikeInfo } from "@/app/actions/likes";
 import { DeletePostButton } from "@/components/DeletePostButton";
+import { LikeButton } from "@/components/LikeButton";
+import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
 
 export default async function PostDetailPage({
@@ -14,10 +18,17 @@ export default async function PostDetailPage({
   const session = await auth();
   if (!session?.user?.tenantId) notFound();
 
-  const post = await getPost(session.user.tenantId, postId);
+  const [post, comments, likeInfo] = await Promise.all([
+    getPost(session.user.tenantId, postId),
+    listComments(session.user.tenantId, postId),
+    getPostLikeInfo(session.user.tenantId, postId, session.user.id),
+  ]);
   if (!post) notFound();
 
-  const canEdit = post.authorId === session.user.id;
+  const canEdit =
+    post.authorId === session.user.id || session.user.role === "admin";
+  const canLike = session.user.role !== "readonly";
+
   const metaItems = [
     { label: "学年", value: post.grade },
     { label: "教科", value: post.subject },
@@ -43,17 +54,26 @@ export default async function PostDetailPage({
               {post.title?.trim() || "（無題）"}
             </h1>
           </div>
-          {canEdit ? (
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/t/${tenantSlug}/posts/${postId}/edit`}
-                className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
-              >
-                編集
-              </Link>
-              <DeletePostButton tenantSlug={tenantSlug} postId={postId} />
-            </div>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <LikeButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialLiked={likeInfo.liked}
+              initialCount={likeInfo.count}
+              canLike={canLike}
+            />
+            {canEdit ? (
+              <>
+                <Link
+                  href={`/t/${tenantSlug}/posts/${postId}/edit`}
+                  className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                >
+                  編集
+                </Link>
+                <DeletePostButton tenantSlug={tenantSlug} postId={postId} />
+              </>
+            ) : null}
+          </div>
         </div>
         <dl className="mt-4 grid gap-2 sm:grid-cols-3">
           {metaItems.map((item) => (
@@ -128,6 +148,14 @@ export default async function PostDetailPage({
           </ul>
         )}
       </section>
+
+      <CommentSection
+        postId={postId}
+        tenantSlug={tenantSlug}
+        currentUserId={session.user.id}
+        currentUserRole={session.user.role}
+        initialComments={comments}
+      />
 
       <p className="text-sm">
         <Link

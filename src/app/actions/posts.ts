@@ -248,6 +248,9 @@ export async function createPost(
   if (!session?.user?.tenantId) {
     return { ok: false, message: "未ログインです" };
   }
+  if (session.user.role === "readonly") {
+    return { ok: false, message: "閲覧専用アカウントは投稿できません" };
+  }
 
   if (!policyOk(formData)) {
     return { ok: false, message: "投稿ポリシーへの同意が必要です" };
@@ -383,8 +386,8 @@ export async function updatePost(
   const tenantSlug = data.tenantSlug;
 
   const existing = await getPost(tenantId, postId);
-  if (!existing || existing.authorId !== session.user.id) {
-    return { ok: false, message: "編集する権限がありません（作成者のみ）" };
+  if (!existing || (existing.authorId !== session.user.id && session.user.role !== "admin")) {
+    return { ok: false, message: "編集する権限がありません（作成者またはadminのみ）" };
   }
 
   const tagNames = parseHashtagInput(data.hashtagsRaw);
@@ -452,8 +455,8 @@ export async function deletePost(
 
   const tenantId = session.user.tenantId;
   const existing = await getPost(tenantId, postId);
-  if (!existing || existing.authorId !== session.user.id) {
-    return { ok: false, message: "削除する権限がありません（作成者のみ）" };
+  if (!existing || (existing.authorId !== session.user.id && session.user.role !== "admin")) {
+    return { ok: false, message: "削除する権限がありません（作成者またはadminのみ）" };
   }
 
   if (isS3Configured()) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutFromApp } from "@/app/actions/auth";
+import { getUnreadCount } from "@/app/actions/notifications";
 
 export default async function TenantLayout({
   children,
@@ -12,8 +13,19 @@ export default async function TenantLayout({
   const { tenantSlug } = await params;
   const session = await auth();
   const showNav =
-    session?.user?.tenantSlug === tenantSlug &&
-    session.user.tenantId;
+    session?.user?.tenantSlug === tenantSlug && session.user.tenantId;
+
+  const isAdmin = session?.user?.role === "admin";
+  const isReadonly = session?.user?.role === "readonly";
+
+  let unreadCount = 0;
+  if (showNav && session?.user?.id) {
+    try {
+      unreadCount = await getUnreadCount(session.user.id);
+    } catch {
+      // 通知テーブル未作成時はスキップ
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-zinc-50">
@@ -27,21 +39,37 @@ export default async function TenantLayout({
               jugyoBase
             </Link>
             <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
-              <Link
-                href={`/t/${tenantSlug}/posts`}
-                className="hover:text-zinc-900"
-              >
+              <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
                 事例一覧
               </Link>
-              <Link
-                href={`/t/${tenantSlug}/posts/new`}
-                className="hover:text-zinc-900"
-              >
-                新規投稿
-              </Link>
+              {!isReadonly ? (
+                <Link href={`/t/${tenantSlug}/posts/new`} className="hover:text-zinc-900">
+                  新規投稿
+                </Link>
+              ) : null}
               <Link href={`/t/${tenantSlug}/mypage`} className="hover:text-zinc-900">
                 マイページ
               </Link>
+              <Link
+                href={`/t/${tenantSlug}/notifications`}
+                className="relative hover:text-zinc-900"
+                title="通知"
+              >
+                🔔
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </Link>
+              {isAdmin ? (
+                <Link
+                  href={`/t/${tenantSlug}/admin/users`}
+                  className="font-medium text-purple-700 hover:text-purple-900"
+                >
+                  管理
+                </Link>
+              ) : null}
               <form action={signOutFromApp}>
                 <button
                   type="submit"

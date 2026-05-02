@@ -112,9 +112,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user) {
-        const u = user as { tenantId?: string; tenantSlug?: string };
+        const u = user as { tenantId?: string; tenantSlug?: string; role?: string };
         if (u.tenantId) token.tenantId = u.tenantId;
         if (u.tenantSlug) token.tenantSlug = u.tenantSlug;
+        if (u.role) token.role = u.role;
       }
       return token;
     },
@@ -122,6 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub) session.user.id = token.sub;
       if (token.tenantId) session.user.tenantId = token.tenantId as string;
       if (token.tenantSlug) session.user.tenantSlug = token.tenantSlug as string;
+      session.user.role = (token.role as string) ?? "teacher";
       return session;
     },
   },
