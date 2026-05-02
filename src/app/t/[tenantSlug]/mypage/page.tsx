@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listPosts } from "@/app/actions/posts";
 import { listBookmarkedPosts } from "@/app/actions/bookmarks";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 
 export default async function MyPage({
   params,
@@ -11,6 +13,9 @@ export default async function MyPage({
   const { tenantSlug } = await params;
   const session = await auth();
   if (!session?.user?.tenantId || !session.user.id) {
+    if (isDemoTenantSlug(tenantSlug)) {
+      redirect(`/t/${tenantSlug}/posts`);
+    }
     return null;
   }
 

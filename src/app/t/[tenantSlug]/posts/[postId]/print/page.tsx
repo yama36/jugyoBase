@@ -1,7 +1,7 @@
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { notFound } from "next/navigation";
 import { getPost } from "@/app/actions/posts";
 import { PrintButton } from "@/components/PrintButton";
+import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 
 export default async function PostPrintPage({
   params,
@@ -9,13 +9,11 @@ export default async function PostPrintPage({
   params: Promise<{ tenantSlug: string; postId: string }>;
 }) {
   const { tenantSlug, postId } = await params;
-  const session = await auth();
 
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
-    redirect(`/t/${tenantSlug}/login`);
-  }
+  const tenantId = await resolveViewTenantId(tenantSlug);
+  if (!tenantId) notFound();
 
-  const post = await getPost(session.user.tenantId, postId);
+  const post = await getPost(tenantId, postId);
   if (!post) notFound();
 
   const contentSections = [

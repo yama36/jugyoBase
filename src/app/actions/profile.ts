@@ -4,13 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-const SUBJECT_OPTIONS = [
-  "国語","社会","数学","理科","音楽","美術",
-  "保健体育","技術","家庭","英語","道徳","学活","総合",
-] as const;
-
-const GRADE_OPTIONS = ["1年", "2年", "3年"] as const;
-
 export async function getMyProfile() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -41,13 +34,14 @@ export async function updateProfile(
       where: { id: session.user.id },
       data: { name, bio, position, subjects, grades } as any,
     });
-    revalidatePath(`/t/${session.user.tenantSlug}/mypage`);
-    revalidatePath(`/t/${session.user.tenantSlug}/profile/edit`);
+    const urlSlug = String(formData.get("tenantSlug") ?? "").trim();
+    const pathsSlug =
+      process.env.NODE_ENV !== "production" && urlSlug ? urlSlug : session.user.tenantSlug!;
+    revalidatePath(`/t/${pathsSlug}/mypage`);
+    revalidatePath(`/t/${pathsSlug}/profile/edit`);
     return { ok: true };
   } catch (e) {
     console.error(e);
     return { ok: false, message: "更新に失敗しました" };
   }
 }
-
-export { SUBJECT_OPTIONS, GRADE_OPTIONS };

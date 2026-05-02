@@ -3,13 +3,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 const VALID_ROLES = ["admin", "teacher", "readonly"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
 async function requireAdmin(tenantSlug: string) {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
     throw new Error("認証が必要です");
   }
   if (session.user.role !== "admin") {

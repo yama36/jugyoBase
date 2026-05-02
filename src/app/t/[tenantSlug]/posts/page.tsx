@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 
 export default async function PostsPage({
   params,
@@ -13,9 +15,15 @@ export default async function PostsPage({
   const { tenantSlug } = await params;
   const sp = await searchParams;
   const session = await auth();
-  if (!session?.user?.tenantId) {
-    return null;
+  const tenantId = await resolveViewTenantId(tenantSlug);
+  if (!tenantId) {
+    notFound();
   }
+
+  const canCreatePost =
+    session?.user?.tenantSlug === tenantSlug &&
+    !!session.user.tenantId &&
+    session.user.role !== "readonly";
 
   const q = typeof sp.q === "string" ? sp.q : undefined;
   const grade = typeof sp.grade === "string" ? sp.grade : undefined;
@@ -23,14 +31,14 @@ export default async function PostsPage({
   const unit = typeof sp.unit === "string" ? sp.unit : undefined;
   const tag = typeof sp.tag === "string" ? sp.tag : undefined;
 
-  const posts = await listPosts(session.user.tenantId, {
+  const posts = await listPosts(tenantId, {
     q,
     grade,
     subject,
     unit,
     tag,
   });
-  const options = await listPostSearchOptions(session.user.tenantId);
+  const options = await listPostSearchOptions(tenantId);
   const hasSearchParams = Boolean(q || grade || subject || unit || tag);
 
   return (
@@ -45,12 +53,14 @@ export default async function PostsPage({
             <AutoRefresh />
           </div>
         </div>
-        <Link
-          href={`/t/${tenantSlug}/posts/new`}
-          className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          新規投稿
-        </Link>
+        {canCreatePost ? (
+          <Link
+            href={`/t/${tenantSlug}/posts/new`}
+            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            新規投稿
+          </Link>
+        ) : null}
       </div>
 
       <details

@@ -14,6 +14,8 @@ import {
   maxBytesForKind,
 } from "@/lib/storage";
 import { deleteObject, presignGetObject, presignPutObject } from "@/lib/s3";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 
 const postFields = z.object({
   tenantSlug: z.string().min(1),
@@ -106,7 +108,7 @@ export async function listPosts(
   const tag = params.tag?.trim().toLowerCase();
 
   const filters: Prisma.PostWhereInput[] = [];
-  if (!params.includeDrafts) filters.push({ isPublished: true } as Prisma.PostWhereInput);
+  if (!params.includeDrafts) filters.push({ isPublished: true });
   if (params.grade) filters.push({ grade: params.grade });
   if (params.subject) filters.push({ subject: params.subject });
   if (params.unit?.trim())
@@ -281,7 +283,7 @@ export async function createPost(
   }
 
   const data = parsed.data;
-  if (data.tenantSlug !== session.user.tenantSlug) {
+  if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
 
@@ -384,7 +386,7 @@ export async function updatePost(
   }
 
   const data = parsed.data;
-  if (data.tenantSlug !== session.user.tenantSlug) {
+  if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
 
@@ -458,7 +460,7 @@ export async function deletePost(
   postId: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
 
@@ -501,7 +503,7 @@ export async function presignUploadForPost(input: {
   { ok: true; uploadUrl: string; storageKey: string } | { ok: false; message: string }
 > {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== input.tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, input.tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
   if (!isS3Configured()) {
@@ -547,7 +549,7 @@ export async function registerAttachment(input: {
   storageKey: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== input.tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, input.tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
 
@@ -597,14 +599,28 @@ export async function getAttachmentDownloadUrl(
   attachmentId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
-    return { ok: false, message: "未ログインです" };
+
+  let tenantId: string | null = null;
+  if (isDemoTenantSlug(tenantSlug)) {
+    const t = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+      select: { id: true },
+    });
+    tenantId = t?.id ?? null;
+  } else {
+    if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
+      return { ok: false, message: "未ログインです" };
+    }
+    tenantId = session.user.tenantId;
+  }
+
+  if (!tenantId) {
+    return { ok: false, message: "見つかりません" };
   }
   if (!isS3Configured()) {
     return { ok: false, message: "ファイルストレージが未設定です" };
   }
 
-  const tenantId = session.user.tenantId;
   const row = await withTenantRls(tenantId, (tx) =>
     tx.attachment.findUnique({
       where: { id: attachmentId },

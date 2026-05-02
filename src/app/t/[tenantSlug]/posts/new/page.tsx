@@ -1,7 +1,8 @@
 import { PostEditor } from "@/components/PostEditor";
 import { listCurriculumUnitOptions, listPostSearchOptions } from "@/app/actions/posts";
 import { auth } from "@/auth";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 export default async function NewPostPage({
   params,
@@ -10,7 +11,12 @@ export default async function NewPostPage({
 }) {
   const { tenantSlug } = await params;
   const session = await auth();
-  if (!session?.user?.tenantId) notFound();
+  if (
+    !session?.user?.tenantId ||
+    !canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })
+  ) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
   const curriculumUnits = await listCurriculumUnitOptions();
   const searchOptions = await listPostSearchOptions(session.user.tenantId);
 

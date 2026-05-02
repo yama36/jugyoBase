@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useRef, useTransition } from "react";
 import { createComment, deleteComment } from "@/app/actions/comments";
 
@@ -20,11 +21,12 @@ export function CommentSection({
 }: {
   postId: string;
   tenantSlug: string;
-  currentUserId: string;
-  currentUserRole: string;
+  currentUserId?: string | null;
+  currentUserRole?: string | null;
   initialComments: Comment[];
 }) {
-  const canComment = currentUserRole !== "readonly";
+  const canComment =
+    Boolean(currentUserId) && currentUserRole !== "readonly";
   const [state, formAction, isPending] = useActionState(createComment, null);
   const [deletePending, startDeleteTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -52,7 +54,8 @@ export function CommentSection({
         <ul className="space-y-3">
           {initialComments.map((c) => {
             const canDelete =
-              c.authorId === currentUserId || currentUserRole === "admin";
+              !!currentUserId &&
+              (c.authorId === currentUserId || currentUserRole === "admin");
             return (
               <li key={c.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
                 <div className="flex items-start justify-between gap-2">
@@ -104,6 +107,16 @@ export function CommentSection({
             {isPending ? "送信中…" : "コメントする"}
           </button>
         </form>
+      ) : !currentUserId ? (
+        <p className="text-xs text-zinc-500">
+          <Link
+            href={`/t/${tenantSlug}/login`}
+            className="text-sky-700 underline-offset-2 hover:underline"
+          >
+            ログイン
+          </Link>
+          するとコメントできます
+        </p>
       ) : (
         <p className="text-xs text-zinc-400">閲覧専用アカウントはコメントできません</p>
       )}

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getMyProfile, updateProfile, SUBJECT_OPTIONS, GRADE_OPTIONS } from "@/app/actions/profile";
+import { getMyProfile, updateProfile } from "@/app/actions/profile";
+import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 export default async function ProfileEditPage({
   params,
@@ -10,7 +12,7 @@ export default async function ProfileEditPage({
   const { tenantSlug } = await params;
   const session = await auth();
 
-  if (!session?.user?.id || session.user.tenantSlug !== tenantSlug) {
+  if (!canAccessTenantRoute(session, tenantSlug, { requireUserId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
 

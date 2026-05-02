@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { auth } from "@/auth";
 import { listNotifications, markAllAsRead } from "@/app/actions/notifications";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +19,7 @@ export default async function NotificationsPage({
   const { tenantSlug } = await params;
   const session = await auth();
 
-  if (!session?.user?.id || session.user.tenantSlug !== tenantSlug) {
+  if (!canAccessTenantRoute(session, tenantSlug, { requireUserId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
 

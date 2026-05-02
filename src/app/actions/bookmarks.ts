@@ -39,8 +39,9 @@ export async function toggleBookmark(
 
 export async function getBookmarkStatus(
   postId: string,
-  userId: string,
+  userId: string | null,
 ): Promise<boolean> {
+  if (!userId) return false;
   const b = await prisma.bookmark.findUnique({
     where: { postId_userId: { postId, userId } },
   });

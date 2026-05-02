@@ -7,15 +7,19 @@ export function BookmarkButton({
   tenantSlug,
   postId,
   initialBookmarked,
+  disabled = false,
 }: {
   tenantSlug: string;
   postId: string;
   initialBookmarked: boolean;
+  /** 未ログインなど */
+  disabled?: boolean;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
+    if (disabled) return;
     startTransition(async () => {
       const result = await toggleBookmark(tenantSlug, postId);
       if (result.ok) setBookmarked(result.bookmarked);
@@ -25,8 +29,8 @@ export function BookmarkButton({
   return (
     <button
       onClick={handleClick}
-      disabled={isPending}
-      title={bookmarked ? "ブックマーク解除" : "ブックマーク"}
+      disabled={disabled || isPending}
+      title={disabled ? "ログインが必要です" : bookmarked ? "ブックマーク解除" : "ブックマーク"}
       className={[
         "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition",
         bookmarked

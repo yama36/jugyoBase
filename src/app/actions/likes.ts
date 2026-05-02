@@ -55,13 +55,15 @@ export async function toggleLike(
 export async function getPostLikeInfo(
   tenantId: string,
   postId: string,
-  userId: string,
+  userId: string | null,
 ): Promise<{ count: number; liked: boolean }> {
   const [count, userLike] = await Promise.all([
     prisma.postLike.count({ where: { postId } }),
-    prisma.postLike.findUnique({
-      where: { postId_userId: { postId, userId } },
-    }),
+    userId
+      ? prisma.postLike.findUnique({
+          where: { postId_userId: { postId, userId } },
+        })
+      : Promise.resolve(null),
   ]);
   return { count, liked: !!userLike };
 }

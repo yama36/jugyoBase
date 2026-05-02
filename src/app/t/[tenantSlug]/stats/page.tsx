@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/app/actions/stats";
 
 function BarChart({
@@ -59,13 +59,13 @@ export default async function StatsPage({
   params: Promise<{ tenantSlug: string }>;
 }) {
   const { tenantSlug } = await params;
-  const session = await auth();
 
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+  const tenantId = await resolveViewTenantId(tenantSlug);
+  if (!tenantId) {
     redirect(`/t/${tenantSlug}/login`);
   }
 
-  const stats = await getStats(session.user.tenantId);
+  const stats = await getStats(tenantId);
 
   const subjectMax = Math.max(...stats.bySubject.map((d) => d.count), 1);
   const gradeMax = Math.max(...stats.byGrade.map((d) => d.count), 1);

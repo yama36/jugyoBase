@@ -10,6 +10,7 @@ import { LikeButton } from "@/components/LikeButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
+import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 
 export default async function PostDetailPage({
   params,
@@ -18,19 +19,25 @@ export default async function PostDetailPage({
 }) {
   const { tenantSlug, postId } = await params;
   const session = await auth();
-  if (!session?.user?.tenantId) notFound();
+  const tenantId = await resolveViewTenantId(tenantSlug);
+  if (!tenantId) notFound();
 
+  const userId = session?.user?.id ?? null;
   const [post, comments, likeInfo, bookmarked] = await Promise.all([
-    getPost(session.user.tenantId, postId),
-    listComments(session.user.tenantId, postId),
-    getPostLikeInfo(session.user.tenantId, postId, session.user.id),
-    getBookmarkStatus(postId, session.user.id),
+    getPost(tenantId, postId),
+    listComments(tenantId, postId),
+    getPostLikeInfo(tenantId, postId, userId),
+    getBookmarkStatus(postId, userId),
   ]);
   if (!post) notFound();
 
+  const sameTenantAsViewer =
+    !!session?.user?.tenantId && session.user.tenantId === tenantId;
   const canEdit =
-    post.authorId === session.user.id || session.user.role === "admin";
-  const canLike = session.user.role !== "readonly";
+    sameTenantAsViewer &&
+    (post.authorId === session.user.id || session.user.role === "admin");
+  const canLike = sameTenantAsViewer && session.user.role !== "readonly";
+  const canBookmark = sameTenantAsViewer;
 
   const metaItems = [
     { label: "学年", value: post.grade },
@@ -69,6 +76,7 @@ export default async function PostDetailPage({
               tenantSlug={tenantSlug}
               postId={postId}
               initialBookmarked={bookmarked}
+              disabled={!canBookmark}
             />
             <Link
               href={`/t/${tenantSlug}/posts/${postId}/print`}
@@ -167,8 +175,8 @@ export default async function PostDetailPage({
       <CommentSection
         postId={postId}
         tenantSlug={tenantSlug}
-        currentUserId={session.user.id}
-        currentUserRole={session.user.role}
+        currentUserId={sameTenantAsViewer ? session!.user.id : null}
+        currentUserRole={sameTenantAsViewer ? session!.user.role : null}
         initialComments={comments}
       />
 

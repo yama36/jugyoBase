@@ -7,27 +7,11 @@ import type { Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
 import { AttachmentUploader } from "./AttachmentUploader";
+import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 
 type PostWithTags = (Post & { contentItem?: string | null }) & {
   tags: (PostTag & { tag: Tag })[];
 };
-
-const GRADE_OPTIONS = ["1年", "2年", "3年"] as const;
-const SUBJECT_OPTIONS = [
-  "国語",
-  "社会",
-  "数学",
-  "理科",
-  "音楽",
-  "美術",
-  "保健体育",
-  "技術",
-  "家庭",
-  "英語",
-  "道徳",
-  "学活",
-  "総合",
-] as const;
 
 type Props =
   | {

@@ -101,26 +101,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
+      // 開発時のみ: demo テナントは事前 User 作成なしで Google アカウントを紐付け可能。
+      // （同一 email は 1 件のため、別テナント所属だった場合はこのログインで demo に寄せる）
+      if (process.env.NODE_ENV !== "production" && slug === "demo") {
+        const displayName =
+          typeof profile?.name === "string" && profile.name.trim()
+            ? profile.name.trim()
+            : email.split("@")[0] ?? email;
+        await prisma.user.upsert({
+          where: { email },
+          create: {
+            email,
+            name: displayName,
+            tenantId: tenant.id,
+            tenantSlug: slug,
+          },
+          update: {
+            tenantId: tenant.id,
+            tenantSlug: slug,
+            ...(typeof profile?.name === "string" && profile.name.trim()
+              ? { name: profile.name.trim() }
+              : {}),
+          },
+        });
+        return true;
+      }
+
       const user = await prisma.user.findUnique({
         where: { email },
       });
-      if (!user) {
-        if (tenant.googleHostedDomain) {
-          // ドメイン検証済み → 初回ログイン時に自動登録（role: teacher）
-          await prisma.user.create({
-            data: {
-              email,
-              name: email.split("@")[0],
-              tenantId: tenant.id,
-              tenantSlug: slug,
-              role: "teacher" as any,
-            },
-          });
-          return true;
-        }
-        return false;
-      }
-      if (user.tenantId !== tenant.id || user.tenantSlug !== slug) {
+      if (!user || user.tenantId !== tenant.id || user.tenantSlug !== slug) {
         return false;
       }
 
@@ -128,10 +138,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user) {
-        const u = user as { tenantId?: string; tenantSlug?: string; role?: string };
+        const u = user as { tenantId?: string; tenantSlug?: string };
         if (u.tenantId) token.tenantId = u.tenantId;
         if (u.tenantSlug) token.tenantSlug = u.tenantSlug;
-        if (u.role) token.role = u.role;
       }
       return token;
     },
@@ -139,7 +148,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub) session.user.id = token.sub;
       if (token.tenantId) session.user.tenantId = token.tenantId as string;
       if (token.tenantSlug) session.user.tenantSlug = token.tenantSlug as string;
-      session.user.role = (token.role as string) ?? "teacher";
       return session;
     },
   },

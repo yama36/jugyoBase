@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getTenantSettings, updateTenantSettings } from "@/app/actions/admin";
@@ -28,7 +29,7 @@ export default async function AdminSettingsPage({
   const { tenantSlug } = await params;
   const session = await auth();
 
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+  if (!canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })) {
     redirect(`/t/${tenantSlug}/login`);
   }
   if (session.user.role !== "admin") {

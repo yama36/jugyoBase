@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutFromApp } from "@/app/actions/auth";
 import { getUnreadCount } from "@/app/actions/notifications";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 
 export default async function TenantLayout({
   children,
@@ -12,14 +13,18 @@ export default async function TenantLayout({
 }) {
   const { tenantSlug } = await params;
   const session = await auth();
-  const showNav =
-    session?.user?.tenantSlug === tenantSlug && session.user.tenantId;
+  const sessionMatchesUrl =
+    session?.user?.tenantSlug === tenantSlug && !!session.user.tenantId;
+  const showFullNav = sessionMatchesUrl;
+
+  const showPublicDemoHeader =
+    isDemoTenantSlug(tenantSlug) && !sessionMatchesUrl;
 
   const isAdmin = session?.user?.role === "admin";
   const isReadonly = session?.user?.role === "readonly";
 
   let unreadCount = 0;
-  if (showNav && session?.user?.id) {
+  if (showFullNav && session?.user?.id) {
     try {
       unreadCount = await getUnreadCount(session.user.id);
     } catch {
@@ -29,7 +34,7 @@ export default async function TenantLayout({
 
   return (
     <div className="min-h-dvh bg-zinc-50">
-      {showNav ? (
+      {showFullNav ? (
         <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
             <Link
@@ -81,6 +86,36 @@ export default async function TenantLayout({
                   ログアウト
                 </button>
               </form>
+            </nav>
+          </div>
+        </header>
+      ) : showPublicDemoHeader ? (
+        <header className="border-b border-zinc-200 bg-white">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+            <Link
+              href={`/t/${tenantSlug}/posts`}
+              className="text-sm font-semibold tracking-tight text-zinc-900"
+            >
+              jugyoBase <span className="font-normal text-zinc-500">（デモ閲覧）</span>
+            </Link>
+            <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
+              <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
+                事例一覧
+              </Link>
+              {session?.user?.tenantSlug ? (
+                <Link
+                  href={`/t/${session.user.tenantSlug}/posts`}
+                  className="text-sky-700 hover:text-sky-900"
+                >
+                  自分の学校へ
+                </Link>
+              ) : null}
+              <Link
+                href={`/t/${tenantSlug}/login`}
+                className="rounded border border-zinc-300 bg-white px-3 py-1.5 hover:bg-zinc-50"
+              >
+                ログイン
+              </Link>
             </nav>
           </div>
         </header>
