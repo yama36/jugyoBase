@@ -62,6 +62,13 @@ export default async function PostDetailPage({
               initialCount={likeInfo.count}
               canLike={canLike}
             />
+            <Link
+              href={`/t/${tenantSlug}/posts/${postId}/print`}
+              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+              title="印刷・PDF保存"
+            >
+              PDF保存
+            </Link>
             {canEdit ? (
               <>
                 <Link
