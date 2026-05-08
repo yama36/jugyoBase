@@ -156,41 +156,88 @@ export default async function PostsPage({
             まだ投稿がありません
           </li>
         ) : (
-          posts.map((post) => (
-            <li key={post.id}>
-              <Link
-                href={`/t/${tenantSlug}/posts/${post.id}`}
-                className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-medium text-zinc-900">
-                    {post.title?.trim() || "（無題）"}
-                  </h2>
-                  <time
-                    dateTime={post.createdAt.toISOString()}
-                    className="text-xs text-zinc-500"
-                  >
-                    {post.createdAt.toLocaleDateString("ja-JP")}
-                  </time>
-                </div>
-                <p className="mt-2 text-sm text-zinc-600">
-                  {post.grade} / {post.subject} / {post.unit}
-                  {post.contentItem ? ` / ${post.contentItem}` : ""}
-                </p>
-                {post.tags.length > 0 ? (
-                  <p className="mt-2 text-xs text-sky-700">
-                    {(post as unknown as { tags: { tag: { name: string } }[] }).tags
-                      .map((pt) => `#${pt.tag.name}`)
-                      .join(" ")}
-                  </p>
-                ) : null}
-                <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
-                  <span>♥ {(post as any)._count?.likes ?? 0}</span>
-                  <span>💬 {(post as any)._count?.comments ?? 0}</span>
-                </div>
-              </Link>
-            </li>
-          ))
+          posts.map((post) => {
+            const attachments = (post as unknown as {
+              attachments?: {
+                id: string;
+                kind: "image" | "pdf" | "slide" | "video";
+                originalFilename: string;
+              }[];
+            }).attachments ?? [];
+            const imageAttachment = attachments.find((a) => a.kind === "image");
+            const pdfAttachment = attachments.find((a) => a.kind === "pdf");
+            const thumbAttachment = imageAttachment ?? pdfAttachment ?? null;
+            const thumbHref = thumbAttachment
+              ? `/t/${tenantSlug}/files/${thumbAttachment.id}`
+              : null;
+
+            return (
+              <li key={post.id}>
+                <Link
+                  href={`/t/${tenantSlug}/posts/${post.id}`}
+                  className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300"
+                >
+                  <div className="flex gap-4">
+                    {thumbAttachment ? (
+                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+                        {thumbAttachment.kind === "image" && thumbHref ? (
+                          <img
+                            src={thumbHref}
+                            alt={thumbAttachment.originalFilename}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full flex-col items-center justify-center text-[11px] text-zinc-600">
+                            <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">
+                              PDF
+                            </span>
+                            <span className="mt-1 px-1 text-center leading-tight">
+                              サムネイル
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 className="font-medium text-zinc-900">
+                          {post.title?.trim() || "（無題）"}
+                        </h2>
+                        <time
+                          dateTime={post.createdAt.toISOString()}
+                          className="text-xs text-zinc-500"
+                        >
+                          {post.createdAt.toLocaleDateString("ja-JP")}
+                        </time>
+                      </div>
+                      <p className="mt-2 text-sm text-zinc-600">
+                        {post.grade} / {post.subject} / {post.unit}
+                        {post.contentItem ? ` / ${post.contentItem}` : ""}
+                      </p>
+                      {post.tags.length > 0 ? (
+                        <p className="mt-2 text-xs text-sky-700">
+                          {(post as unknown as { tags: { tag: { name: string } }[] }).tags
+                            .map((pt) => `#${pt.tag.name}`)
+                            .join(" ")}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
+                        <span>♥ {(post as any)._count?.likes ?? 0}</span>
+                        <span>💬 {(post as any)._count?.comments ?? 0}</span>
+                        {thumbAttachment ? (
+                          <span className="text-zinc-500">
+                            添付: {thumbAttachment.kind === "image" ? "画像" : "PDF"}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })
         )}
       </ul>
     </div>

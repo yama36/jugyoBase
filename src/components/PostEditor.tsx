@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPost, updatePost } from "@/app/actions/posts";
 import type { Post, PostTag, Tag } from "@prisma/client";
@@ -32,24 +32,32 @@ export function PostEditor(props: Props) {
   const router = useRouter();
   const tenantSlug = props.tenantSlug;
 
-  const [createState, createAction] = useActionState(createPost, null);
-  const [updateState, updateAction] = useActionState(updatePost, null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (createState?.ok) {
-      router.push(`/t/${tenantSlug}/posts/${createState.postId}/edit`);
-    }
-  }, [createState, router, tenantSlug]);
-
-  useEffect(() => {
-    if (updateState?.ok) {
-      router.refresh();
-    }
-  }, [updateState, router]);
-
-  const action = props.mode === "create" ? createAction : updateAction;
-  const state = props.mode === "create" ? createState : updateState;
-
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    startTransition(async () => {
+      setError(null);
+      const fd = new FormData(form);
+      if (props.mode === "create") {
+        const r = await createPost(null, fd);
+        if (r.ok) {
+          router.push(`/t/${tenantSlug}/posts/${r.postId}/edit`);
+        } else {
+          setError(r.message);
+        }
+      } else {
+        const r = await updatePost(null, fd);
+        if (r.ok) {
+          router.refresh();
+        } else {
+          setError(r.message);
+        }
+      }
+    });
+  }
   const p = props.mode === "edit" ? props.post : null;
   const hashtagsInitial =
     p?.tags.map((pt) => `#${pt.tag.name}`).join(" ") ?? "";
@@ -65,18 +73,11 @@ export function PostEditor(props: Props) {
     const unique = new Set(filteredUnits.map((u) => u.name));
     if (p?.unit) unique.add(p.unit);
     return Array.from(unique);
-  }, [filteredUnits, p?.unit]);
-
-  useEffect(() => {
-    if (!unit) return;
-    if (!unitOptions.includes(unit)) {
-      setUnit("");
-    }
-  }, [unit, unitOptions]);
+  }, [filteredUnits, p]);
 
   return (
     <div className="space-y-8">
-      <form action={action} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="tenantSlug" value={tenantSlug} />
         {props.mode === "edit" ? (
           <input type="hidden" name="postId" value={props.post.id} />
@@ -264,13 +265,12 @@ export function PostEditor(props: Props) {
           <span>下書きとして保存する（一覧に表示されません）</span>
         </label>
 
-        {state && !state.ok ? (
-          <p className="text-sm text-red-600">{state.message}</p>
-        ) : null}
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <button
           type="submit"
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          disabled={isPending}
+          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
         >
           {props.mode === "create" ? "保存して次へ（添付）" : "更新する"}
         </button>

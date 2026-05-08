@@ -2,6 +2,7 @@
 
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { APP_BASE_PATH } from "@/lib/app-base-path";
 import { cookies } from "next/headers";
 import { COOKIE_TENANT_SLUG } from "@/lib/auth-constants";
 
@@ -27,7 +28,11 @@ export async function startGoogleSignIn(tenantSlug: string) {
     authzParams.hd = tenant.googleHostedDomain.trim().toLowerCase();
   }
 
-  await signIn("google", { redirectTo: `/t/${tenantSlug}/posts` }, authzParams);
+  await signIn(
+    "google",
+    { redirectTo: `${APP_BASE_PATH}/t/${tenantSlug}/posts` },
+    authzParams,
+  );
 }
 
 export async function loginWithTenantForm(formData: FormData) {
@@ -37,5 +42,5 @@ export async function loginWithTenantForm(formData: FormData) {
 }
 
 export async function signOutFromApp() {
-  await signOut({ redirectTo: "/" });
+  await signOut({ redirectTo: `${APP_BASE_PATH}/` });
 }

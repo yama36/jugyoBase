@@ -4,8 +4,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import {
   listCurriculumUnits,
-  addCurriculumUnit,
-  toggleCurriculumUnitActive,
+  submitAddCurriculumUnitForm,
+  submitToggleCurriculumUnitForm,
 } from "@/app/actions/admin";
 
 const SCHOOL_TYPE_LABELS: Record<string, string> = {
@@ -75,12 +75,7 @@ export default async function AdminCurriculumPage({
         <p className="mt-1 text-xs text-zinc-500">
           投稿フォームの単元候補に追加されます。
         </p>
-        <form
-          action={async (fd) => {
-            await addCurriculumUnit(fd);
-          }}
-          className="mt-4 flex flex-wrap items-end gap-3"
-        >
+        <form action={submitAddCurriculumUnitForm} className="mt-4 flex flex-wrap items-end gap-3">
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <input type="hidden" name="schoolType" value="junior_high" />
           <div>
@@ -167,15 +162,10 @@ export default async function AdminCurriculumPage({
                         {SCHOOL_TYPE_LABELS[unit.schoolType] ?? unit.schoolType}
                       </span>
                     </div>
-                    <form
-                      action={async () => {
-                        await toggleCurriculumUnitActive(
-                          tenantSlug,
-                          unit.id,
-                          !unit.isActive,
-                        );
-                      }}
-                    >
+                    <form action={submitToggleCurriculumUnitForm}>
+                      <input type="hidden" name="tenantSlug" value={tenantSlug} />
+                      <input type="hidden" name="unitId" value={unit.id} />
+                      <input type="hidden" name="isActive" value={String(!unit.isActive)} />
                       <button
                         type="submit"
                         className={`rounded border px-2.5 py-1 text-xs transition ${

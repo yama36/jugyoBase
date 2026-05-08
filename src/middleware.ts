@@ -12,7 +12,16 @@ function stripBasePath(pathname: string): string {
 }
 
 export default auth((req) => {
-  const path = stripBasePath(req.nextUrl.pathname);
+  const pathname = req.nextUrl.pathname;
+  // basePath なしで Google のリダイレクト URI が登録されていると /api/auth/... のまま届く。
+  // Next のルートは /jugyobase/api/auth/... のみなので、先に正しいパスへ寄せる。
+  if (pathname.startsWith("/api/auth") && !pathname.startsWith(`${APP_BASE_PATH}/`)) {
+    const url = req.nextUrl.clone();
+    url.pathname = `${APP_BASE_PATH}${pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  const path = stripBasePath(pathname);
   if (!path.startsWith("/t/")) return NextResponse.next();
 
   const parts = path.split("/").filter(Boolean);
@@ -52,5 +61,5 @@ export default auth((req) => {
 
 /** `APP_BASE_PATH` と同一パスプレフィックス（Next の matcher は静的文字列必須のためここにベタ書き）。 */
 export const config = {
-  matcher: ["/jugyobase/t/:tenantSlug/:path*"],
+  matcher: ["/jugyobase/t/:tenantSlug/:path*", "/api/auth/:path*"],
 };

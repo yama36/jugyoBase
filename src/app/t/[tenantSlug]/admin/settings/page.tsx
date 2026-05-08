@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { getTenantSettings, updateTenantSettings } from "@/app/actions/admin";
+import { getTenantSettings, submitTenantSettingsForm } from "@/app/actions/admin";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "elementary", label: "小学校" },
@@ -67,9 +67,7 @@ export default async function AdminSettingsPage({
       </div>
 
       <form
-        action={async (fd) => {
-          await updateTenantSettings(fd);
-        }}
+        action={submitTenantSettingsForm}
         className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
       >
         <input type="hidden" name="tenantSlug" value={tenantSlug} />

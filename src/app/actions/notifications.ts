@@ -30,3 +30,8 @@ export async function markAllAsRead(tenantSlug: string): Promise<void> {
 
   revalidatePath(`/t/${tenantSlug}/notifications`);
 }
+
+export async function submitMarkAllAsReadForm(formData: FormData): Promise<void> {
+  const tenantSlug = String(formData.get("tenantSlug") ?? "");
+  await markAllAsRead(tenantSlug);
+}

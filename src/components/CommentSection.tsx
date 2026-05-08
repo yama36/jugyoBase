@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 import { createComment, deleteComment } from "@/app/actions/comments";
 
 type Comment = {
@@ -25,15 +26,28 @@ export function CommentSection({
   currentUserRole?: string | null;
   initialComments: Comment[];
 }) {
+  const router = useRouter();
   const canComment =
     Boolean(currentUserId) && currentUserRole !== "readonly";
-  const [state, formAction, isPending] = useActionState(createComment, null);
+  const [state, setState] = useState<
+    { ok: true } | { ok: false; error: string } | null
+  >(null);
+  const [commentPending, startComment] = useTransition();
   const [deletePending, startDeleteTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
-  // フォーム送信成功時にテキストエリアをクリア
-  if (state?.ok && formRef.current) {
-    formRef.current.reset();
+  function handleCommentSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    startComment(async () => {
+      const fd = new FormData(form);
+      const result = await createComment(null, fd);
+      setState(result);
+      if (result.ok) {
+        form.reset();
+        router.refresh();
+      }
+    });
   }
 
   function handleDelete(commentId: string) {
@@ -41,6 +55,7 @@ export function CommentSection({
     startDeleteTransition(async () => {
       const result = await deleteComment(tenantSlug, commentId);
       if (!result.ok) alert(result.message);
+      else router.refresh();
     });
   }
 
@@ -85,7 +100,11 @@ export function CommentSection({
       )}
 
       {canComment ? (
-        <form ref={formRef} action={formAction} className="space-y-2">
+        <form
+          ref={formRef}
+          onSubmit={handleCommentSubmit}
+          className="space-y-2"
+        >
           <input type="hidden" name="postId" value={postId} />
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <textarea
@@ -101,10 +120,10 @@ export function CommentSection({
           ) : null}
           <button
             type="submit"
-            disabled={isPending}
+            disabled={commentPending}
             className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
           >
-            {isPending ? "送信中…" : "コメントする"}
+            {commentPending ? "送信中…" : "コメントする"}
           </button>
         </form>
       ) : !currentUserId ? (

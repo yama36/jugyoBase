@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { listTenantUsers, addUser, updateUserRole } from "@/app/actions/admin";
+import { listTenantUsers, submitAddUserForm, submitUpdateUserRoleForm } from "@/app/actions/admin";
 import { RemoveUserButton } from "@/components/RemoveUserButton";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -70,12 +70,7 @@ export default async function AdminUsersPage({
         <p className="mt-1 text-xs text-zinc-500">
           Googleアカウントのメールアドレスを登録すると、ログインできるようになります。
         </p>
-        <form
-          action={async (fd) => {
-            await addUser(fd);
-          }}
-          className="mt-4 flex flex-wrap items-end gap-3"
-        >
+        <form action={submitAddUserForm} className="mt-4 flex flex-wrap items-end gap-3">
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <div>
             <label className="block text-xs font-medium text-zinc-600">メールアドレス *</label>
@@ -153,12 +148,7 @@ export default async function AdminUsersPage({
                     {isSelf ? (
                       <span className="text-xs text-zinc-400">変更不可</span>
                     ) : (
-                      <form
-                        action={async (fd) => {
-                          await updateUserRole(fd);
-                        }}
-                        className="flex items-center gap-2"
-                      >
+                      <form action={submitUpdateUserRoleForm} className="flex items-center gap-2">
                         <input type="hidden" name="tenantSlug" value={tenantSlug} />
                         <input type="hidden" name="userId" value={user.id} />
                         <select

@@ -185,6 +185,18 @@ export async function toggleCurriculumUnitActive(
   }
 }
 
+export async function toggleCurriculumUnitActiveFromForm(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const tenantSlug = String(formData.get("tenantSlug") ?? "");
+  const unitId = String(formData.get("unitId") ?? "");
+  const isActive = String(formData.get("isActive") ?? "") === "true";
+  if (!tenantSlug || !unitId) {
+    return { ok: false, message: "パラメータが不正です" };
+  }
+  return toggleCurriculumUnitActive(tenantSlug, unitId, isActive);
+}
+
 export async function getTenantSettings(tenantId: string) {
   return prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -221,4 +233,25 @@ export async function updateTenantSettings(
     console.error(e);
     return { ok: false, message: "更新に失敗しました" };
   }
+}
+
+/** React 19 の `<form action>` の型（`Promise<void>`）に合わせたエントリ */
+export async function submitAddUserForm(formData: FormData): Promise<void> {
+  await addUser(formData);
+}
+
+export async function submitUpdateUserRoleForm(formData: FormData): Promise<void> {
+  await updateUserRole(formData);
+}
+
+export async function submitAddCurriculumUnitForm(formData: FormData): Promise<void> {
+  await addCurriculumUnit(formData);
+}
+
+export async function submitToggleCurriculumUnitForm(formData: FormData): Promise<void> {
+  await toggleCurriculumUnitActiveFromForm(formData);
+}
+
+export async function submitTenantSettingsForm(formData: FormData): Promise<void> {
+  await updateTenantSettings(formData);
 }

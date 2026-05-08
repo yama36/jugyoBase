@@ -45,3 +45,7 @@ export async function updateProfile(
     return { ok: false, message: "更新に失敗しました" };
   }
 }
+
+export async function submitProfileForm(formData: FormData): Promise<void> {
+  await updateProfile(formData);
+}

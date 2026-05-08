@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getMyProfile, updateProfile } from "@/app/actions/profile";
+import { getMyProfile, submitProfileForm } from "@/app/actions/profile";
 import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
@@ -32,9 +32,7 @@ export default async function ProfileEditPage({
       </div>
 
       <form
-        action={async (fd) => {
-          await updateProfile(fd);
-        }}
+        action={submitProfileForm}
         className="space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
       >
         <input type="hidden" name="tenantSlug" value={tenantSlug} />

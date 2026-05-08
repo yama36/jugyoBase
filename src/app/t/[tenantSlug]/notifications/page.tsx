@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { auth } from "@/auth";
-import { listNotifications, markAllAsRead } from "@/app/actions/notifications";
+import { listNotifications, submitMarkAllAsReadForm } from "@/app/actions/notifications";
 import { prisma } from "@/lib/prisma";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -52,7 +52,8 @@ export default async function NotificationsPage({
           </p>
         </div>
         {hasUnread ? (
-          <form action={markAllAsRead.bind(null, tenantSlug)}>
+          <form action={submitMarkAllAsReadForm}>
+            <input type="hidden" name="tenantSlug" value={tenantSlug} />
             <button
               type="submit"
               className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"

@@ -31,7 +31,7 @@ docker compose up -d
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/jugyoBase"
 AUTH_SECRET="$(openssl rand -base64 32)"
-AUTH_URL="http://localhost:3000/jugyobase"
+AUTH_URL="http://localhost:3000"
 AUTH_GOOGLE_ID="（Google Cloud Console のクライアント ID）"
 AUTH_GOOGLE_SECRET="（クライアントシークレット）"
 ```
@@ -93,7 +93,7 @@ AUTH_GOOGLE_ID="..."
 AUTH_GOOGLE_SECRET="..."
 ```
 
-`AUTH_URL` はこのアプリのオリジン＋`basePath`（`/jugyobase`）まで含めて実際の実行 URL と一致させてください（開発なら通常 `http://localhost:3000/jugyobase`、本番なら `https://identfill.com/jugyobase`）。
+`AUTH_URL` は**オリジン**（例: 開発 `http://localhost:3000`、本番 `https://identfill.com`）でよい。Auth.js のルートは `src/auth.ts` で `basePath` を `/jugyobase/api/auth` に固定している。`AUTH_URL` に `/jugyobase` だけ含めると誤解釈で `redirect_uri_mismatch` になる。
 
 ### 本番（サブパス配信・`identfill.com/jugyobase` の例）
 

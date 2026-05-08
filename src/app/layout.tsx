@@ -5,11 +5,15 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  // 日本語表示では当該 woff2 がすぐに使用されず、
+  // Chrome の link preload 警告（未使用 preloaded）を誘発しやすいため抑止。
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
