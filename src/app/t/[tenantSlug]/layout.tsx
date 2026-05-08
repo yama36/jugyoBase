@@ -55,9 +55,11 @@ export default async function TenantLayout({
               <Link href={`/t/${tenantSlug}/mypage`} className="hover:text-zinc-900">
                 マイページ
               </Link>
-              <Link href={`/t/${tenantSlug}/stats`} className="hover:text-zinc-900">
-                統計
-              </Link>
+              {isAdmin ? (
+                <Link href={`/t/${tenantSlug}/stats`} className="hover:text-zinc-900">
+                  統計
+                </Link>
+              ) : null}
               <Link
                 href={`/t/${tenantSlug}/notifications`}
                 className="relative hover:text-zinc-900"

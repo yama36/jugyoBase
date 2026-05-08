@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/app/actions/stats";
+import { auth } from "@/auth";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 function BarChart({
   data,
@@ -59,6 +61,21 @@ export default async function StatsPage({
   params: Promise<{ tenantSlug: string }>;
 }) {
   const { tenantSlug } = await params;
+  const session = await auth();
+
+  if (!canAccessTenantRoute(session, tenantSlug, { requireTenantId: true })) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
+  if (!session?.user) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
+  if (session.user.role !== "admin") {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+        管理者権限が必要です
+      </div>
+    );
+  }
 
   const tenantId = await resolveViewTenantId(tenantSlug);
   if (!tenantId) {
