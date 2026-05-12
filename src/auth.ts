@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { APP_BASE_PATH } from "@/lib/app-base-path";
 import { COOKIE_TENANT_SLUG } from "@/lib/auth-constants";
 
 function normalizeEmail(email: string): string {
@@ -53,6 +54,10 @@ function resolveGoogleClientSecret(): string {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Next.js の basePath が /jugyobase のとき、AUTH_URL に /jugyobase を含めると
+  // Auth.js が basePath を /jugyobase だけと誤り `/jugyobase/callback/google` になる。
+  // 実ルートは App Router の `/jugyobase/api/auth/*` なのでここで明示する。
+  basePath: `${APP_BASE_PATH}/api/auth`,
   // 開発時の UntrustedHost を避けるため有効化。
   // OAuth の redirect URI は Google Console 側を localhost に揃えて運用する。
   trustHost: true,
@@ -99,6 +104,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (profileHd && profileHd !== allowedDomain) {
           return false;
         }
+      }
+
+      // 開発時のみ: demo テナントは事前 User 作成なしで Google アカウントを紐付け可能。
+      // （同一 email は 1 件のため、別テナント所属だった場合はこのログインで demo に寄せる）
+      if (process.env.NODE_ENV !== "production" && slug === "demo") {
+        const displayName =
+          typeof profile?.name === "string" && profile.name.trim()
+            ? profile.name.trim()
+            : email.split("@")[0] ?? email;
+        await prisma.user.upsert({
+          where: { email },
+          create: {
+            email,
+            name: displayName,
+            tenantId: tenant.id,
+            tenantSlug: slug,
+          },
+          update: {
+            tenantId: tenant.id,
+            tenantSlug: slug,
+            ...(typeof profile?.name === "string" && profile.name.trim()
+              ? { name: profile.name.trim() }
+              : {}),
+          },
+        });
+        return true;
       }
 
       const user = await prisma.user.findUnique({

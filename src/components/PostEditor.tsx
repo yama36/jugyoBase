@@ -1,38 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPost, updatePost } from "@/app/actions/posts";
+import { updatePost } from "@/app/actions/posts";
 import type { Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
 import { AttachmentUploader } from "./AttachmentUploader";
+import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 
 type PostWithTags = (Post & { contentItem?: string | null }) & {
   tags: (PostTag & { tag: Tag })[];
 };
 
-const GRADE_OPTIONS = ["1年", "2年", "3年"] as const;
-const SUBJECT_OPTIONS = [
-  "国語",
-  "社会",
-  "数学",
-  "理科",
-  "音楽",
-  "美術",
-  "保健体育",
-  "技術",
-  "家庭",
-  "英語",
-  "道徳",
-  "学活",
-  "総合",
-] as const;
-
 type Props =
   | {
       mode: "create";
       tenantSlug: string;
+      /** ページ表示時にサーバーが用意した空下書き（添付は保存前から可能） */
+      draftPostId: string;
       curriculumUnits: CurriculumUnitOption[];
       hashtagSuggestions: string[];
     }
@@ -48,30 +34,32 @@ export function PostEditor(props: Props) {
   const router = useRouter();
   const tenantSlug = props.tenantSlug;
 
-  const [createState, createAction] = useActionState(createPost, null);
-  const [updateState, updateAction] = useActionState(updatePost, null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (createState?.ok) {
-      router.push(`/t/${tenantSlug}/posts/${createState.postId}/edit`);
-    }
-  }, [createState, router, tenantSlug]);
-
-  useEffect(() => {
-    if (updateState?.ok) {
-      router.refresh();
-    }
-  }, [updateState, router]);
-
-  const action = props.mode === "create" ? createAction : updateAction;
-  const state = props.mode === "create" ? createState : updateState;
-
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    startTransition(async () => {
+      setError(null);
+      const fd = new FormData(form);
+      const r = await updatePost(null, fd);
+      if (r.ok) {
+        router.refresh();
+      } else {
+        setError(r.message);
+      }
+    });
+  }
   const p = props.mode === "edit" ? props.post : null;
   const hashtagsInitial =
     p?.tags.map((pt) => `#${pt.tag.name}`).join(" ") ?? "";
   const [grade, setGrade] = useState<string>(p?.grade ?? "");
   const [subject, setSubject] = useState<string>(p?.subject ?? "");
   const [unit, setUnit] = useState<string>(p?.unit ?? "");
+  const [contentItem, setContentItem] = useState<string>(p?.contentItem?.trim() ?? "");
+
+  const postId = props.mode === "create" ? props.draftPostId : props.post.id;
 
   const filteredUnits = useMemo(() => {
     return props.curriculumUnits.filter((u) => u.grade === grade && u.subject === subject);
@@ -81,22 +69,22 @@ export function PostEditor(props: Props) {
     const unique = new Set(filteredUnits.map((u) => u.name));
     if (p?.unit) unique.add(p.unit);
     return Array.from(unique);
-  }, [filteredUnits, p?.unit]);
-
-  useEffect(() => {
-    if (!unit) return;
-    if (!unitOptions.includes(unit)) {
-      setUnit("");
-    }
-  }, [unit, unitOptions]);
+  }, [filteredUnits, p]);
 
   return (
-    <div className="space-y-8">
-      <form action={action} className="space-y-4">
+    <div className="space-y-6">
+      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <AttachmentUploader tenantSlug={tenantSlug} postId={postId} />
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="tenantSlug" value={tenantSlug} />
-        {props.mode === "edit" ? (
-          <input type="hidden" name="postId" value={props.post.id} />
-        ) : null}
+        <input
+          type="hidden"
+          name="postId"
+          value={props.mode === "create" ? props.draftPostId : props.post.id}
+        />
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
@@ -159,7 +147,7 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            単元・内容項目 <span className="text-red-600">*</span>
+            単元 <span className="text-red-600">*</span>
           </label>
           <p className="mt-1 text-xs text-zinc-500">
             候補から選ぶか、候補にない場合はそのまま入力できます。
@@ -183,14 +171,32 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            めあて <span className="text-red-600">*</span>
+            内容項目（任意）
           </label>
+          <p className="mt-1 text-xs text-zinc-500">
+            指導要領上の細目や、単元内の小トピックがあれば入力できます。
+          </p>
+          <input
+            name="contentItem"
+            type="text"
+            value={contentItem}
+            onChange={(e) => setContentItem(e.target.value)}
+            disabled={!grade || !subject}
+            maxLength={500}
+            placeholder={
+              !grade || !subject ? "先に学年と教科を選択してください" : "例: 連立方程式（なければ空のままでも構いません）"
+            }
+            className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">めあて</label>
           <p className="mt-1 text-xs text-zinc-500">
             生徒が「この授業で何ができるようになるか」
           </p>
           <textarea
             name="aim"
-            required
             rows={4}
             defaultValue={p?.aim ?? ""}
             placeholder="例: 連立方程式を使って、買い物の問題を自分で解けるようになる。"
@@ -199,16 +205,13 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            振り返り <span className="text-red-600">*</span>
-          </label>
+          <label className="block text-sm font-medium text-zinc-700">振り返り</label>
           <p className="mt-1 text-xs text-zinc-500">
             生徒が「できたこと・難しかったこと・次に頑張ること」
           </p>
           <textarea
             name="reflection"
             rows={4}
-            required
             defaultValue={p?.reflection ?? ""}
             placeholder="例: 式を立てるところで迷った。次は条件を表に整理してから取り組みたい。"
             className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
@@ -217,11 +220,10 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            工夫した点（POINT） <span className="text-red-600">*</span>
+            工夫した点（POINT）
           </label>
           <textarea
             name="point"
-            required
             rows={3}
             defaultValue={p?.point ?? ""}
             className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
@@ -230,11 +232,10 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            簡単な授業の流れ <span className="text-red-600">*</span>
+            簡単な授業の流れ
           </label>
           <textarea
             name="flow"
-            required
             rows={4}
             defaultValue={p?.flow ?? ""}
             className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
@@ -270,21 +271,27 @@ export function PostEditor(props: Props) {
           <span>上記ポリシーと学校の運用に従い、適切な内容のみを投稿します</span>
         </label>
 
-        {state && !state.ok ? (
-          <p className="text-sm text-red-600">{state.message}</p>
-        ) : null}
+        <label className="flex items-center gap-2 text-sm text-zinc-600">
+          <input
+            type="checkbox"
+            name="isDraft"
+            className="mt-0.5"
+            defaultChecked={props.mode === "edit" ? p?.isPublished === false : false}
+          />
+          <span>下書きとして保存する（一覧に表示されません）</span>
+        </label>
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <button
           type="submit"
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          disabled={isPending}
+          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
         >
-          {props.mode === "create" ? "保存して次へ（添付）" : "更新する"}
+          保存する
         </button>
       </form>
-
-      {props.mode === "edit" ? (
-        <AttachmentUploader tenantSlug={tenantSlug} postId={props.post.id} />
-      ) : null}
+      </section>
     </div>
   );
 }

@@ -6,6 +6,7 @@ declare module "next-auth" {
       id: string;
       tenantId: string;
       tenantSlug: string;
+      role: string;
     };
   }
 }
@@ -14,5 +15,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     tenantId?: string;
     tenantSlug?: string;
+    role?: string;
   }
 }

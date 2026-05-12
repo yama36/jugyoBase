@@ -29,6 +29,8 @@ export function AttachmentUploader(props: {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const kindLabel = KINDS.find((x) => x.id === kind)?.label ?? "ファイル";
+
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -78,12 +80,12 @@ export function AttachmentUploader(props: {
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 p-4">
-      <h3 className="text-sm font-semibold text-zinc-900">添付ファイル</h3>
-      <p className="mt-1 text-xs text-zinc-600">
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-zinc-800">添付ファイル</h3>
+      <p className="text-xs text-zinc-600">
         種類を選んでからファイルを選択してください。動画は mp4 / webm を推奨します。
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {KINDS.map((k) => (
           <button
             key={k.id}
@@ -99,16 +101,41 @@ export function AttachmentUploader(props: {
           </button>
         ))}
       </div>
-      <div className="mt-3">
-        <input
-          type="file"
-          accept={acceptFor(kind)}
-          disabled={busy}
-          onChange={onFile}
-          className="text-sm"
-        />
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <label
+          className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-sky-700 bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-500 hover:shadow-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-sky-400 focus-within:ring-offset-2 active:bg-sky-800 ${
+            busy ? "pointer-events-none opacity-50" : ""
+          }`}
+        >
+          <svg
+            className="h-5 w-5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>ファイルを選択</span>
+          <input
+            type="file"
+            accept={acceptFor(kind)}
+            disabled={busy}
+            onChange={onFile}
+            className="sr-only"
+            aria-label={`${kindLabel}をアップロード`}
+          />
+        </label>
+        <span className="text-xs text-zinc-500 sm:self-center">
+          上の種類（{kindLabel}）に合うファイルを選んでください
+        </span>
       </div>
-      {message ? <p className="mt-2 text-sm text-zinc-700">{message}</p> : null}
+      {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
     </div>
   );
 }

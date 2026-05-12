@@ -1,6 +1,19 @@
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+  if (session?.user?.tenantSlug) {
+    redirect(`/t/${session.user.tenantSlug}/posts`);
+  }
+
+  const tenants = await prisma.tenant.findMany({
+    select: { name: true, slug: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-6 px-6 py-16">
       <div>
@@ -8,29 +21,31 @@ export default function HomePage() {
           jugyoBase
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-          学校ごとのクローズドな空間で、授業実践を共有するための最小プラットフォームです。
-          テナント URL の <span className="font-mono">/t/学校スラッグ/login</span>{" "}
-          から Google でログインします。
+          学校（テナント）を選んでログインします。
         </p>
       </div>
-      <p className="text-sm text-zinc-600">
-        初回は運用者がテナントとユーザーを手動登録します。手順はリポジトリの{" "}
-        <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs">
-          docs/TENANT_BOOTSTRAP.md
-        </code>{" "}
-        を参照してください。
-      </p>
-      <p className="text-xs text-zinc-500">
-        例:{" "}
-        <Link
-          href="/t/demo/login"
-          className="font-mono text-sky-800 underline-offset-2 hover:underline"
-        >
-          /t/demo/login
-        </Link>{" "}
-        （<code className="font-mono">npm run tenant:create -- --slug demo ...</code>{" "}
-        で自分の Google メールを登録したあと）
-      </p>
+      {tenants.length === 0 ? (
+        <p className="text-sm text-zinc-500">
+          登録された学校がありません。運用者向けの作成手順はリポジトリの{" "}
+          <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs">
+            docs/TENANT_BOOTSTRAP.md
+          </code>{" "}
+          を参照してください。
+        </p>
+      ) : (
+        <ul className="divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+          {tenants.map((t) => (
+            <li key={t.slug}>
+              <Link
+                href={`/t/${t.slug}/login`}
+                className="block px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              >
+                {t.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

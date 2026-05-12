@@ -39,7 +39,7 @@ npm run db:studio
 https://（ホスト）/t/{slug}/login
 ```
 
-ローカル例: `http://localhost:3000/t/my-school/login`
+ローカル例: `http://localhost:3000/jugyobase`（テナント一覧）または `http://localhost:3000/jugyobase/t/my-school/login`
 
 ## 注意
 

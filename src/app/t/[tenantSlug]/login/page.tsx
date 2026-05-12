@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { loginWithTenantForm } from "@/app/actions/auth";
 
 export default async function TenantLoginPage({
@@ -14,6 +15,11 @@ export default async function TenantLoginPage({
     redirect(`/t/${tenantSlug}/posts`);
   }
 
+  const tenantInfo = await prisma.tenant.findUnique({
+    where: { slug: tenantSlug },
+    select: { googleHostedDomain: true },
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -21,9 +27,18 @@ export default async function TenantLoginPage({
         <p className="mt-2 text-sm text-zinc-600">
           学校テナント: <span className="font-mono">{tenantSlug}</span>
         </p>
-        <p className="mt-2 text-sm text-zinc-600">
-          運用で事前登録された Google アカウントのみログインできます。
-        </p>
+        {tenantInfo?.googleHostedDomain ? (
+          <p className="mt-2 text-sm text-zinc-600">
+            <span className="font-mono text-zinc-800">
+              @{tenantInfo.googleHostedDomain}
+            </span>{" "}
+            のGoogleアカウントであれば、そのままログインできます。
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-600">
+            管理者に事前登録されたGoogleアカウントのみログインできます。
+          </p>
+        )}
       </div>
       <form action={loginWithTenantForm} className="space-y-4">
         <input type="hidden" name="tenantSlug" value={tenantSlug} />

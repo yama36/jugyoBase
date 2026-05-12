@@ -14,6 +14,9 @@ import {
   maxBytesForKind,
 } from "@/lib/storage";
 import { deleteObject, presignGetObject, presignPutObject } from "@/lib/s3";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
+import { isDemoTenantSlug } from "@/lib/demo-public";
+import { newPostShellDraftWhere } from "@/lib/post-shell-draft";
 
 const postFields = z.object({
   tenantSlug: z.string().min(1),
@@ -24,8 +27,8 @@ const postFields = z.object({
   contentItem: z.string().max(500).optional().nullable(),
   aim: z.string().max(5000).optional().nullable(),
   reflection: z.string().max(20000).optional().nullable(),
-  point: z.string().min(1).max(20000),
-  flow: z.string().min(1).max(20000),
+  point: z.string().max(20000).optional().nullable(),
+  flow: z.string().max(20000).optional().nullable(),
   hashtagsRaw: z.string().max(2000).optional().nullable(),
 });
 
@@ -36,6 +39,7 @@ export type PostSearchParams = {
   unit?: string;
   tag?: string;
   authorId?: string;
+  includeDrafts?: boolean;
 };
 
 export type CurriculumUnitOption = {
@@ -105,6 +109,7 @@ export async function listPosts(
   const tag = params.tag?.trim().toLowerCase();
 
   const filters: Prisma.PostWhereInput[] = [];
+  if (!params.includeDrafts) filters.push({ isPublished: true });
   if (params.grade) filters.push({ grade: params.grade });
   if (params.subject) filters.push({ subject: params.subject });
   if (params.unit?.trim())
@@ -129,7 +134,8 @@ export async function listPosts(
         author: { select: { id: true, name: true, image: true } },
         tags: { include: { tag: true } },
         attachments: true,
-      },
+        _count: { select: { likes: true, comments: true } },
+      } as any,
     }),
   );
 }
@@ -240,6 +246,77 @@ function policyOk(formData: FormData): boolean {
   return v === "on" || v === "true";
 }
 
+/**
+ * 新規投稿画面用に postId を用意する。
+ * 同一ユーザー・同一テナントで「まだ中身が入っていない下書き」があれば直近 1 件を再利用し、なければ新規作成する。
+ */
+export async function createShellDraftPost(
+  tenantSlug: string,
+): Promise<{ ok: true; postId: string } | { ok: false; message: string }> {
+  const session = await auth();
+  if (!session?.user?.tenantId) {
+    return { ok: false, message: "未ログインです" };
+  }
+  if (session.user.role === "readonly") {
+    return { ok: false, message: "閲覧専用アカウントは投稿できません" };
+  }
+  if (!canAccessTenantRoute(session, tenantSlug)) {
+    return { ok: false, message: "テナントが一致しません" };
+  }
+
+  const tenantId = session.user.tenantId;
+
+  const searchText = buildPostSearchText({
+    title: null,
+    grade: "",
+    subject: "",
+    unit: "",
+    contentItem: null,
+    aim: "",
+    reflection: null,
+    point: null,
+    flow: null,
+    tagNames: [],
+  });
+
+  try {
+    const reused = await withTenantRls(tenantId, (tx) =>
+      tx.post.findFirst({
+        where: newPostShellDraftWhere(session.user.id),
+        orderBy: { updatedAt: "desc" },
+        select: { id: true },
+      }),
+    );
+    if (reused) {
+      return { ok: true, postId: reused.id };
+    }
+
+    const post = await withTenantRls(tenantId, async (tx) =>
+      tx.post.create({
+        data: {
+          tenantId,
+          authorId: session.user.id,
+          title: null,
+          grade: "",
+          subject: "",
+          unit: "",
+          contentItem: null,
+          aim: "",
+          reflection: null,
+          point: null,
+          flow: null,
+          searchText,
+          isPublished: false,
+        } as any,
+      }),
+    );
+    return { ok: true, postId: post.id };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, message: "下書きの準備に失敗しました" };
+  }
+}
+
 export async function createPost(
   _prev: unknown,
   formData: FormData,
@@ -247,6 +324,9 @@ export async function createPost(
   const session = await auth();
   if (!session?.user?.tenantId) {
     return { ok: false, message: "未ログインです" };
+  }
+  if (session.user.role === "readonly") {
+    return { ok: false, message: "閲覧専用アカウントは投稿できません" };
   }
 
   if (!policyOk(formData)) {
@@ -275,7 +355,7 @@ export async function createPost(
   }
 
   const data = parsed.data;
-  if (data.tenantSlug !== session.user.tenantSlug) {
+  if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
 
@@ -286,10 +366,10 @@ export async function createPost(
     subject: data.subject,
     unit: data.unit,
     contentItem: data.contentItem,
-    aim: data.aim,
-    reflection: data.reflection,
-    point: data.point,
-    flow: data.flow,
+    aim: data.aim?.trim() ?? "",
+    reflection: data.reflection?.trim() || null,
+    point: data.point?.trim() || null,
+    flow: data.flow?.trim() || null,
     tagNames,
   });
 
@@ -308,6 +388,8 @@ export async function createPost(
       console.warn("curriculum unit upsert failed", e);
     }
 
+    const isDraft = formData.get("isDraft") === "on";
+
     const post = await withTenantRls(tenantId, async (tx) => {
       const p = await tx.post.create({
         data: {
@@ -319,11 +401,12 @@ export async function createPost(
           unit: data.unit,
           contentItem: data.contentItem || null,
           aim: data.aim?.trim() ?? "",
-          reflection: data.reflection || null,
-          point: data.point,
-          flow: data.flow,
+          reflection: data.reflection?.trim() || null,
+          point: data.point?.trim() || null,
+          flow: data.flow?.trim() || null,
           searchText,
-        },
+          isPublished: !isDraft,
+        } as any,
       });
       await syncPostTags(tx, tenantId, p.id, tagNames);
       return p;
@@ -375,7 +458,7 @@ export async function updatePost(
   }
 
   const data = parsed.data;
-  if (data.tenantSlug !== session.user.tenantSlug) {
+  if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
 
@@ -383,8 +466,8 @@ export async function updatePost(
   const tenantSlug = data.tenantSlug;
 
   const existing = await getPost(tenantId, postId);
-  if (!existing || existing.authorId !== session.user.id) {
-    return { ok: false, message: "編集する権限がありません（作成者のみ）" };
+  if (!existing || (existing.authorId !== session.user.id && session.user.role !== "admin")) {
+    return { ok: false, message: "編集する権限がありません（作成者またはadminのみ）" };
   }
 
   const tagNames = parseHashtagInput(data.hashtagsRaw);
@@ -394,10 +477,10 @@ export async function updatePost(
     subject: data.subject,
     unit: data.unit,
     contentItem: data.contentItem,
-    aim: data.aim,
-    reflection: data.reflection,
-    point: data.point,
-    flow: data.flow,
+    aim: data.aim?.trim() ?? "",
+    reflection: data.reflection?.trim() || null,
+    point: data.point?.trim() || null,
+    flow: data.flow?.trim() || null,
     tagNames,
   });
 
@@ -412,6 +495,8 @@ export async function updatePost(
       console.warn("curriculum unit upsert failed", e);
     }
 
+    const isDraft = formData.get("isDraft") === "on";
+
     await withTenantRls(tenantId, async (tx) => {
       await tx.post.update({
         where: { id: postId },
@@ -422,11 +507,12 @@ export async function updatePost(
           unit: data.unit,
           contentItem: data.contentItem || null,
           aim: data.aim?.trim() ?? "",
-          reflection: data.reflection || null,
-          point: data.point,
-          flow: data.flow,
+          reflection: data.reflection?.trim() || null,
+          point: data.point?.trim() || null,
+          flow: data.flow?.trim() || null,
           searchText,
-        },
+          isPublished: !isDraft,
+        } as any,
       });
       await syncPostTags(tx, tenantId, postId, tagNames);
     });
@@ -434,6 +520,7 @@ export async function updatePost(
     revalidatePath(`/t/${tenantSlug}/posts`);
     revalidatePath(`/t/${tenantSlug}/posts/${postId}`);
     revalidatePath(`/t/${tenantSlug}/posts/${postId}/edit`);
+    revalidatePath(`/t/${tenantSlug}/posts/new`);
     return { ok: true };
   } catch (e) {
     console.error(e);
@@ -446,14 +533,14 @@ export async function deletePost(
   postId: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
 
   const tenantId = session.user.tenantId;
   const existing = await getPost(tenantId, postId);
-  if (!existing || existing.authorId !== session.user.id) {
-    return { ok: false, message: "削除する権限がありません（作成者のみ）" };
+  if (!existing || (existing.authorId !== session.user.id && session.user.role !== "admin")) {
+    return { ok: false, message: "削除する権限がありません（作成者またはadminのみ）" };
   }
 
   if (isS3Configured()) {
@@ -489,7 +576,7 @@ export async function presignUploadForPost(input: {
   { ok: true; uploadUrl: string; storageKey: string } | { ok: false; message: string }
 > {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== input.tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, input.tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
   if (!isS3Configured()) {
@@ -535,7 +622,7 @@ export async function registerAttachment(input: {
   storageKey: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== input.tenantSlug) {
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, input.tenantSlug)) {
     return { ok: false, message: "未ログインです" };
   }
 
@@ -573,6 +660,7 @@ export async function registerAttachment(input: {
     );
     revalidatePath(`/t/${input.tenantSlug}/posts/${input.postId}`);
     revalidatePath(`/t/${input.tenantSlug}/posts/${input.postId}/edit`);
+    revalidatePath(`/t/${input.tenantSlug}/posts/new`);
     return { ok: true };
   } catch (e) {
     console.error(e);
@@ -585,14 +673,28 @@ export async function getAttachmentDownloadUrl(
   attachmentId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   const session = await auth();
-  if (!session?.user?.tenantId || session.user.tenantSlug !== tenantSlug) {
-    return { ok: false, message: "未ログインです" };
+
+  let tenantId: string | null = null;
+  if (isDemoTenantSlug(tenantSlug)) {
+    const t = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+      select: { id: true },
+    });
+    tenantId = t?.id ?? null;
+  } else {
+    if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
+      return { ok: false, message: "未ログインです" };
+    }
+    tenantId = session.user.tenantId;
+  }
+
+  if (!tenantId) {
+    return { ok: false, message: "見つかりません" };
   }
   if (!isS3Configured()) {
     return { ok: false, message: "ファイルストレージが未設定です" };
   }
 
-  const tenantId = session.user.tenantId;
   const row = await withTenantRls(tenantId, (tx) =>
     tx.attachment.findUnique({
       where: { id: attachmentId },
