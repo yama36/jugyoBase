@@ -80,7 +80,7 @@ export default async function MyPage({
             {drafts.map((post) => (
               <li key={post.id}>
                 <Link
-                  href={`/t/${tenantSlug}/posts/${post.id}/edit`}
+                  href={`/t/${tenantSlug}/posts/${post.id}/edit?from=mypage`}
                   className="block rounded-lg border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -124,7 +124,7 @@ export default async function MyPage({
             published.map((post) => (
               <li key={post.id}>
                 <Link
-                  href={`/t/${tenantSlug}/posts/${post.id}`}
+                  href={`/t/${tenantSlug}/posts/${post.id}?from=mypage`}
                   className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -168,7 +168,7 @@ export default async function MyPage({
             {bookmarkedPosts.map((post) => (
               <li key={post.id}>
                 <Link
-                  href={`/t/${tenantSlug}/posts/${post.id}`}
+                  href={`/t/${tenantSlug}/posts/${post.id}?from=mypage`}
                   className="block rounded-lg border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">

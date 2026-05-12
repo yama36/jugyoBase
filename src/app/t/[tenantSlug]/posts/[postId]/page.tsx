@@ -14,13 +14,24 @@ import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 
 export default async function PostDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantSlug: string; postId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { tenantSlug, postId } = await params;
+  const sp = await searchParams;
   const session = await auth();
   const tenantId = await resolveViewTenantId(tenantSlug);
   if (!tenantId) notFound();
+
+  // 戻り先は ?from=mypage で明示。未指定時は一覧へフォールバック。
+  const fromParam = typeof sp.from === "string" ? sp.from : undefined;
+  const backToMypage = fromParam === "mypage";
+  const backHref = backToMypage
+    ? `/t/${tenantSlug}/mypage`
+    : `/t/${tenantSlug}/posts`;
+  const backLabel = backToMypage ? "← マイページへ" : "← 一覧へ";
 
   const userId = session?.user?.id ?? null;
   const [post, comments, likeInfo, bookmarked] = await Promise.all([
@@ -88,7 +99,7 @@ export default async function PostDetailPage({
             {canEdit ? (
               <>
                 <Link
-                  href={`/t/${tenantSlug}/posts/${postId}/edit`}
+                  href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
                   className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
                 >
                   編集
@@ -182,10 +193,10 @@ export default async function PostDetailPage({
 
       <p className="text-sm">
         <Link
-          href={`/t/${tenantSlug}/posts`}
+          href={backHref}
           className="text-zinc-600 underline-offset-2 hover:underline"
         >
-          ← 一覧へ
+          {backLabel}
         </Link>
       </p>
     </article>

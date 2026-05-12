@@ -10,10 +10,13 @@ import { PostEditor } from "@/components/PostEditor";
 
 export default async function EditPostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantSlug: string; postId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { tenantSlug, postId } = await params;
+  const sp = await searchParams;
   const session = await auth();
   if (!session?.user?.tenantId) notFound();
 
@@ -32,6 +35,19 @@ export default async function EditPostPage({
     );
   }
 
+  // 戻り先は ?from=mypage|detail で明示。未指定時は下書きならマイページ、
+  // 公開済みなら詳細にフォールバックする。
+  const fromParam = typeof sp.from === "string" ? sp.from : undefined;
+  const isDraft = (post as { isPublished?: boolean }).isPublished === false;
+  const fallback: "mypage" | "detail" = isDraft ? "mypage" : "detail";
+  const from: "mypage" | "detail" =
+    fromParam === "mypage" || fromParam === "detail" ? fromParam : fallback;
+  const backHref =
+    from === "mypage"
+      ? `/t/${tenantSlug}/mypage`
+      : `/t/${tenantSlug}/posts/${postId}`;
+  const backLabel = from === "mypage" ? "← マイページへ" : "← 詳細へ";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -42,10 +58,10 @@ export default async function EditPostPage({
           </p>
         </div>
         <Link
-          href={`/t/${tenantSlug}/posts/${postId}`}
+          href={backHref}
           className="text-sm text-zinc-600 underline-offset-2 hover:underline"
         >
-          詳細へ戻る
+          {backLabel}
         </Link>
       </div>
       <PostEditor

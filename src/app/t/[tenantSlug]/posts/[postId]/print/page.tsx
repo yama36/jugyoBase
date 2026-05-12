@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPost } from "@/app/actions/posts";
 import { PrintButton } from "@/components/PrintButton";
@@ -29,12 +30,12 @@ export default async function PostPrintPage({
       <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3 shadow-sm print:hidden">
         <span className="text-sm text-zinc-600">印刷プレビュー</span>
         <div className="flex items-center gap-3">
-          <a
+          <Link
             href={`/t/${tenantSlug}/posts/${postId}`}
             className="text-sm text-zinc-500 hover:text-zinc-800"
           >
-            ← 戻る
-          </a>
+            ← 詳細へ
+          </Link>
           <PrintButton />
         </div>
       </div>

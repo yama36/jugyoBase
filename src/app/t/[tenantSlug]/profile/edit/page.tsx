@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getMyProfile, submitProfileForm } from "@/app/actions/profile";
@@ -128,12 +129,12 @@ export default async function ProfileEditPage({
           >
             保存する
           </button>
-          <a
+          <Link
             href={`/t/${tenantSlug}/mypage`}
             className="text-sm text-zinc-500 underline-offset-2 hover:underline"
           >
             キャンセル
-          </a>
+          </Link>
         </div>
       </form>
     </div>
