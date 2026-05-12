@@ -74,10 +74,12 @@ export function CommentSection({
             return (
               <li key={c.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs text-zinc-500">
-                    {c.author.name ?? c.author.email} ・{" "}
+                  <time
+                    dateTime={new Date(c.createdAt).toISOString()}
+                    className="text-xs text-zinc-500"
+                  >
                     {new Date(c.createdAt).toLocaleString("ja-JP")}
-                  </p>
+                  </time>
                   {canDelete ? (
                     <button
                       onClick={() => handleDelete(c.id)}

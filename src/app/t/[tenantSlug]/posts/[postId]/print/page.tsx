@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { getPost } from "@/app/actions/posts";
 import { PrintButton } from "@/components/PrintButton";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import {
+  getGradeBadgeClasses,
+  getSubjectBadgeClasses,
+  getUnitBadgeClasses,
+} from "@/lib/subject-grade-colors";
 
 export default async function PostPrintPage({
   params,
@@ -20,9 +25,13 @@ export default async function PostPrintPage({
   const contentSections = [
     { title: "めあて", value: post.aim },
     { title: "振り返り", value: post.reflection },
-    { title: "工夫した点（POINT）", value: post.point },
     { title: "授業の流れ", value: post.flow },
+    { title: "工夫した点（POINT）", value: post.point },
   ].filter((s) => s.value?.trim());
+
+  const gradeColor = getGradeBadgeClasses(post.grade);
+  const subjectColor = getSubjectBadgeClasses(post.subject);
+  const unitColor = getUnitBadgeClasses(post.subject);
 
   return (
     <>
@@ -43,37 +52,54 @@ export default async function PostPrintPage({
       {/* 印刷コンテンツ（A4想定） */}
       <div className="mx-auto max-w-2xl space-y-6 px-8 pb-16 pt-20 print:max-w-none print:px-0 print:pt-0">
         {/* ヘッダー情報 */}
-        <header className="border-b border-zinc-300 pb-4">
-          <p className="text-xs text-zinc-500">
+        <header className="space-y-3 border-b border-zinc-300 pb-4">
+          <h1 className="text-xl font-bold text-zinc-900 print:text-black">
+            {post.title?.trim() || "（無題）"}
+          </h1>
+          <div className="flex flex-wrap items-center gap-1.5 print:gap-3">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs print:rounded-none print:border-0 print:bg-transparent print:px-0 print:py-0 ${gradeColor.wrapper}`}
+            >
+              <span className={`${gradeColor.value} print:text-black`}>
+                {post.grade}
+              </span>
+            </span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs print:rounded-none print:border-0 print:bg-transparent print:px-0 print:py-0 ${subjectColor.wrapper}`}
+            >
+              <span className={`${subjectColor.value} print:text-black`}>
+                {post.subject}
+              </span>
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs print:rounded-none print:border-0 print:bg-transparent print:px-0 print:py-0 ${unitColor.wrapper}`}
+            >
+              <span className={`${unitColor.label} print:text-black`}>
+                単元
+              </span>
+              <span className={`${unitColor.value} print:text-black`}>
+                {post.unit}
+              </span>
+            </span>
+            {post.contentItem ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs print:rounded-none print:border-0 print:bg-transparent print:px-0 print:py-0">
+                <span className="text-zinc-500 print:text-black">内容項目</span>
+                <span className="font-medium text-zinc-800 print:text-black">
+                  {post.contentItem}
+                </span>
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs text-zinc-500 print:text-black">
             {post.createdAt.toLocaleDateString("ja-JP", {
               year: "numeric",
               month: "long",
               day: "numeric",
-            })}{" "}
+            })}
             ・ {post.author.name ?? post.author.email}
           </p>
-          <h1 className="mt-2 text-xl font-bold text-zinc-900">
-            {post.title?.trim() || "（無題）"}
-          </h1>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-zinc-600">
-            <span>
-              <span className="font-medium">学年:</span> {post.grade}
-            </span>
-            <span>
-              <span className="font-medium">教科:</span> {post.subject}
-            </span>
-            <span>
-              <span className="font-medium">単元:</span> {post.unit}
-            </span>
-            {post.contentItem ? (
-              <span>
-                <span className="font-medium">内容項目:</span>{" "}
-                {post.contentItem}
-              </span>
-            ) : null}
-          </div>
           {post.tags.length > 0 ? (
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="text-xs text-zinc-500 print:text-black">
               {post.tags.map((pt) => `#${pt.tag.name}`).join("  ")}
             </p>
           ) : null}
@@ -81,11 +107,15 @@ export default async function PostPrintPage({
 
         {/* コンテンツセクション */}
         {contentSections.map((section) => (
-          <section key={section.title} className="space-y-1">
-            <h2 className="text-sm font-bold text-zinc-800 print:text-black">
+          <section key={section.title} className="space-y-2">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-zinc-900 print:text-black">
+              <span
+                aria-hidden="true"
+                className="inline-block h-4 w-1 rounded-full bg-zinc-400 print:bg-black"
+              />
               {section.title}
             </h2>
-            <p className="whitespace-pre-wrap text-sm leading-7 text-zinc-700 print:text-black">
+            <p className="whitespace-pre-wrap text-[15px] leading-7 text-zinc-700 print:text-black">
               {section.value}
             </p>
           </section>

@@ -4,6 +4,11 @@ import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import {
+  getGradeBadgeClasses,
+  getSubjectBadgeClasses,
+  getUnitBadgeClasses,
+} from "@/lib/subject-grade-colors";
 
 export default async function PostsPage({
   params,
@@ -65,10 +70,34 @@ export default async function PostsPage({
 
       <details
         open={hasSearchParams}
-        className="rounded-lg border border-zinc-200 bg-white"
+        className="group rounded-lg border border-zinc-200 bg-white"
       >
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-zinc-800">
-          検索条件
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+          <span className="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+              className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.21 5.21a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.08l-4.25 4.25a.75.75 0 11-1.06-1.06L10.94 10 7.21 6.27a.75.75 0 010-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
+            検索条件
+            {hasSearchParams ? (
+              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                条件あり
+              </span>
+            ) : null}
+          </span>
+          <span className="text-xs text-zinc-500">
+            <span className="group-open:hidden">開く</span>
+            <span className="hidden group-open:inline">閉じる</span>
+          </span>
         </summary>
         <form method="get" className="grid gap-3 border-t border-zinc-200 p-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -170,6 +199,9 @@ export default async function PostsPage({
             const thumbHref = thumbAttachment
               ? `/t/${tenantSlug}/files/${thumbAttachment.id}`
               : null;
+            const gradeColor = getGradeBadgeClasses(post.grade);
+            const subjectColor = getSubjectBadgeClasses(post.subject);
+            const unitColor = getUnitBadgeClasses(post.subject);
 
             return (
               <li key={post.id}>
@@ -212,10 +244,31 @@ export default async function PostsPage({
                           {post.createdAt.toLocaleDateString("ja-JP")}
                         </time>
                       </div>
-                      <p className="mt-2 text-sm text-zinc-600">
-                        {post.grade} / {post.subject} / {post.unit}
-                        {post.contentItem ? ` / ${post.contentItem}` : ""}
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${gradeColor.wrapper}`}
+                        >
+                          <span className={gradeColor.value}>{post.grade}</span>
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${subjectColor.wrapper}`}
+                        >
+                          <span className={subjectColor.value}>
+                            {post.subject}
+                          </span>
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${unitColor.wrapper}`}
+                        >
+                          <span className={unitColor.label}>単元</span>
+                          <span className={unitColor.value}>{post.unit}</span>
+                        </span>
+                        {post.contentItem ? (
+                          <span className="text-xs text-zinc-500">
+                            {post.contentItem}
+                          </span>
+                        ) : null}
+                      </div>
                       {post.tags.length > 0 ? (
                         <p className="mt-2 text-xs text-sky-700">
                           {(post as unknown as { tags: { tag: { name: string } }[] }).tags
