@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listPosts } from "@/app/actions/posts";
 import { listBookmarkedPosts } from "@/app/actions/bookmarks";
+import { isNewPostShellDraft } from "@/lib/post-shell-draft";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 
 export default async function MyPage({
@@ -28,7 +29,22 @@ export default async function MyPage({
   ]);
 
   const published = posts.filter((p) => (p as any).isPublished !== false);
-  const drafts = posts.filter((p) => (p as any).isPublished === false);
+  const drafts = posts.filter(
+    (p) =>
+      (p as any).isPublished === false &&
+      !isNewPostShellDraft({
+        isPublished: p.isPublished,
+        title: p.title,
+        grade: p.grade,
+        subject: p.subject,
+        unit: p.unit,
+        aim: p.aim,
+        contentItem: p.contentItem,
+        reflection: p.reflection,
+        point: p.point,
+        flow: p.flow,
+      }),
+  );
 
   return (
     <div className="space-y-8">

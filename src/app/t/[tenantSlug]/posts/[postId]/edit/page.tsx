@@ -34,8 +34,13 @@ export default async function EditPostPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-zinc-900">編集</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-zinc-900">編集</h1>
+          <p className="mt-1 text-sm text-zinc-600">
+            一番上でファイルを添付できます。内容を更新したら保存してください。
+          </p>
+        </div>
         <Link
           href={`/t/${tenantSlug}/posts/${postId}`}
           className="text-sm text-zinc-600 underline-offset-2 hover:underline"
