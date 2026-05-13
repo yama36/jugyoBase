@@ -161,22 +161,6 @@ export default function PrivacyPage() {
           </p>
         </section>
         </div>
-
-        <footer className="mt-12 border-t border-zinc-200 pt-6 text-sm text-zinc-500">
-          <p>
-            <Link href="/help" className="text-sky-700 underline-offset-2 hover:underline">
-              使い方
-            </Link>
-            {" · "}
-            <Link href="/contact" className="text-sky-700 underline-offset-2 hover:underline">
-              お問い合わせ
-            </Link>
-            {" · "}
-            <Link href="/" className="text-sky-700 underline-offset-2 hover:underline">
-              トップへ
-            </Link>
-          </p>
-        </footer>
       </article>
     </div>
   );

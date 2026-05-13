@@ -282,7 +282,7 @@ function PostFormMock() {
             </li>
           </ul>
           <p className="pt-0.5 text-zinc-500">
-            PDF・スライド・画像は 25 MiB まで、動画は 200 MiB までです。
+            PDF・スライド・画像は 25 MB まで、動画は 200 MB までです。
           </p>
         </div>
 

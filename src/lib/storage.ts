@@ -2,8 +2,8 @@ import type { AttachmentKind } from "@prisma/client";
 
 /** 1ファイルあたりの上限（バイト）。動画は別枠で大きめ。 */
 export const STORAGE_LIMITS = {
-  defaultMaxBytes: 25 * 1024 * 1024, // 25 MiB
-  videoMaxBytes: 200 * 1024 * 1024, // 200 MiB（MVP: ブラウザ再生しやすい mp4 等を想定）
+  defaultMaxBytes: 25 * 1024 * 1024, // 25 MB
+  videoMaxBytes: 200 * 1024 * 1024, // 200 MB（MVP: ブラウザ再生しやすい mp4 等を想定）
 } as const;
 
 export const ALLOWED_MIME_BY_KIND: Record<

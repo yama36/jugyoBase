@@ -1,30 +1,12 @@
-import Link from "next/link";
+import { PublicSiteFooter } from "@/components/site/PublicSiteFooter";
+import { PublicSiteHeader } from "@/components/site/PublicSiteHeader";
 
 export default function HelpLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-zinc-50">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tight text-zinc-900"
-          >
-            jugyoBase
-          </Link>
-          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-600">
-            <Link href="/contact" className="font-medium text-sky-700 hover:text-sky-900">
-              お問い合わせ
-            </Link>
-            <Link href="/privacy" className="hover:text-zinc-900">
-              プライバシーポリシー
-            </Link>
-            <Link href="/" className="hover:text-zinc-900">
-              トップへ戻る
-            </Link>
-          </nav>
-        </div>
-      </header>
-      {children}
+    <div className="flex min-h-dvh flex-col bg-zinc-50">
+      <PublicSiteHeader active="help" containerClassName="max-w-6xl" />
+      <div className="flex-1">{children}</div>
+      <PublicSiteFooter containerClassName="max-w-6xl" />
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import Link from "next/link";
+import { PublicSiteFooter } from "@/components/site/PublicSiteFooter";
+import { TenantAppHeader } from "@/components/site/TenantAppHeader";
 import { auth } from "@/auth";
-import { signOutFromApp } from "@/app/actions/auth";
 import { getUnreadCount } from "@/app/actions/notifications";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 
@@ -35,112 +35,27 @@ export default async function TenantLayout({
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50">
       {showFullNav ? (
-        <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-            <Link
-              href={`/t/${tenantSlug}/posts`}
-              className="text-sm font-semibold tracking-tight text-zinc-900"
-            >
-              jugyoBase
-            </Link>
-            <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
-              <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
-                事例一覧
-              </Link>
-              {!isReadonly ? (
-                <Link href={`/t/${tenantSlug}/posts/new`} className="hover:text-zinc-900">
-                  新規投稿
-                </Link>
-              ) : null}
-              <Link href={`/t/${tenantSlug}/mypage`} className="hover:text-zinc-900">
-                マイページ
-              </Link>
-              {isAdmin ? (
-                <Link href={`/t/${tenantSlug}/stats`} className="hover:text-zinc-900">
-                  統計
-                </Link>
-              ) : null}
-              <Link
-                href={`/t/${tenantSlug}/notifications`}
-                className="relative hover:text-zinc-900"
-                title="通知"
-              >
-                🔔
-                {unreadCount > 0 ? (
-                  <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                ) : null}
-              </Link>
-              {isAdmin ? (
-                <Link
-                  href={`/t/${tenantSlug}/admin/users`}
-                  className="font-medium text-purple-700 hover:text-purple-900"
-                >
-                  管理
-                </Link>
-              ) : null}
-              <form action={signOutFromApp}>
-                <button
-                  type="submit"
-                  className="text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline"
-                >
-                  ログアウト
-                </button>
-              </form>
-            </nav>
-          </div>
-        </header>
+        <TenantAppHeader
+          tenantSlug={tenantSlug}
+          variant="full"
+          isAdmin={!!isAdmin}
+          isReadonly={!!isReadonly}
+          unreadCount={unreadCount}
+        />
       ) : showPublicDemoHeader ? (
-        <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-            <Link
-              href={`/t/${tenantSlug}/posts`}
-              className="text-sm font-semibold tracking-tight text-zinc-900"
-            >
-              jugyoBase <span className="font-normal text-zinc-500">（デモ閲覧）</span>
-            </Link>
-            <nav className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
-              <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
-                事例一覧
-              </Link>
-              {session?.user?.tenantSlug ? (
-                <Link
-                  href={`/t/${session.user.tenantSlug}/posts`}
-                  className="text-sky-700 hover:text-sky-900"
-                >
-                  自分の学校へ
-                </Link>
-              ) : null}
-              <Link
-                href={`/t/${tenantSlug}/login`}
-                className="rounded border border-zinc-300 bg-white px-3 py-1.5 hover:bg-zinc-50"
-              >
-                ログイン
-              </Link>
-            </nav>
-          </div>
-        </header>
+        <TenantAppHeader
+          tenantSlug={tenantSlug}
+          variant="demo"
+          sessionTenantSlug={session?.user?.tenantSlug}
+          isAdmin={false}
+          isReadonly={false}
+          unreadCount={0}
+        />
       ) : null}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
         {children}
       </main>
-      <footer className="mt-8 border-t border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-zinc-500">
-          <span>jugyoBase</span>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link href="/help" className="hover:text-zinc-800">
-              使い方
-            </Link>
-            <Link href="/contact" className="text-sky-700 hover:text-sky-900">
-              お問い合わせ
-            </Link>
-            <Link href="/privacy" className="hover:text-zinc-800">
-              プライバシー
-            </Link>
-          </span>
-        </div>
-      </footer>
+      <PublicSiteFooter />
     </div>
   );
 }
