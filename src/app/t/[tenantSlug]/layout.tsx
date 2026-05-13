@@ -135,6 +135,9 @@ export default async function TenantLayout({
             <Link href="/contact" className="text-sky-700 hover:text-sky-900">
               お問い合わせ
             </Link>
+            <Link href="/privacy" className="hover:text-zinc-800">
+              プライバシー
+            </Link>
           </span>
         </div>
       </footer>

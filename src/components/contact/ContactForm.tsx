@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CONTACT_FORM_APP_ID,
@@ -524,19 +525,26 @@ export function ContactForm({ defaultName, defaultEmail }: ContactFormProps) {
             />
             <span>
               <span className="text-red-600">*</span> プライバシーポリシーに同意します。
+              {" "}
               {privacyPolicyUrl ? (
-                <>
-                  {" "}
-                  <a
-                    href={privacyPolicyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky-700 underline-offset-2 hover:underline"
-                  >
-                    プライバシーポリシーを開く
-                  </a>
-                </>
-              ) : null}
+                <a
+                  href={privacyPolicyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-700 underline-offset-2 hover:underline"
+                >
+                  プライバシーポリシーを開く
+                </a>
+              ) : (
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-700 underline-offset-2 hover:underline"
+                >
+                  プライバシーポリシーを開く
+                </Link>
+              )}
             </span>
           </label>
         </div>

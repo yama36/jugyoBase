@@ -15,6 +15,9 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
             <Link href="/contact" className="font-medium text-sky-700 hover:text-sky-900">
               お問い合わせ
             </Link>
+            <Link href="/privacy" className="hover:text-zinc-900">
+              プライバシーポリシー
+            </Link>
             <Link href="/" className="hover:text-zinc-900">
               トップへ戻る
             </Link>

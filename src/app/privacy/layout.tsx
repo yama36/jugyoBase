@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export default function ContactLayout({ children }: { children: React.ReactNode }) {
+export default function PrivacyLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
@@ -15,10 +15,10 @@ export default function ContactLayout({ children }: { children: React.ReactNode 
             <Link href="/help" className="hover:text-zinc-900">
               使い方
             </Link>
-            <Link href="/contact" className="font-medium text-sky-700 hover:text-sky-900">
+            <Link href="/contact" className="hover:text-zinc-900">
               お問い合わせ
             </Link>
-            <Link href="/privacy" className="hover:text-zinc-900">
+            <Link href="/privacy" className="font-medium text-sky-700 hover:text-sky-900">
               プライバシーポリシー
             </Link>
             <Link href="/" className="hover:text-zinc-900">
