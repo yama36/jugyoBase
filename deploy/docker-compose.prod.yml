@@ -1,0 +1,50 @@
+# 本番用 Postgres + MinIO（同一サーバ・Nginx の裏に置く想定）
+# - すべてのポートは 127.0.0.1 にバインドし、外部からは Nginx 経由でしか到達できないようにする
+# - MinIO は s3.identfill.com で Nginx 越しに公開（MINIO_SERVER_URL で署名検証用ホストを揃える）
+# - 値は実運用前に `.env.production` から読ませる or 直接書き換える
+#
+# 起動: cd /opt/jugyobase && docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
+# 停止: docker compose -f deploy/docker-compose.prod.yml down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jugyobase}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-jugyobase}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - jugyobase_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jugyobase} -d ${POSTGRES_DB:-jugyobase}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      # 署名 URL のホストを Nginx 公開ホストに揃える（重要）
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://s3.identfill.com}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://s3-console.identfill.com}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - jugyobase_minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  jugyobase_pg:
+  jugyobase_minio:

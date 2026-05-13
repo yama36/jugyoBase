@@ -1,0 +1,32 @@
+[Unit]
+Description=jugyoBase (Next.js) production server
+Documentation=https://github.com/yama36/jugyoBase
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jugyobase
+Group=jugyobase
+WorkingDirectory=/opt/jugyobase
+EnvironmentFile=/opt/jugyobase/.env.production
+# .env.production の PORT / HOSTNAME を Next.js が読む
+ExecStart=/usr/bin/env npm run start
+Restart=always
+RestartSec=5
+# Next.js は SIGTERM で after() コールバックなどを処理する。10〜30 秒の余裕を与える
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# セキュリティ（Ubuntu 22.04+ の systemd で利用可）
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+# ログは journalctl -u jugyobase で参照
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

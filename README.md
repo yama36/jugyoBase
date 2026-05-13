@@ -97,6 +97,7 @@ Google Cloud Console の OAuth 2.0 クライアントで、使うオリジンご
 
 ## ドキュメント
 
+- [docs/DEPLOY.md](docs/DEPLOY.md) — 本番デプロイ手順（Ubuntu VPS + Nginx + Postgres + MinIO）
 - [docs/TENANT_BOOTSTRAP.md](docs/TENANT_BOOTSTRAP.md) — 手動テナント作成
 - [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — スキーマと検索・RLS
 
