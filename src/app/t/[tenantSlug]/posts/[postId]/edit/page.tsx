@@ -21,9 +21,11 @@ export default async function EditPostPage({
   const session = await auth();
   if (!session?.user?.tenantId) notFound();
 
-  const curriculumUnits = await listCurriculumUnitOptions();
-  const searchOptions = await listPostSearchOptions(session.user.tenantId);
-  const post = await getPost(session.user.tenantId, postId);
+  const [curriculumUnits, searchOptions, post] = await Promise.all([
+    listCurriculumUnitOptions(),
+    listPostSearchOptions(session.user.tenantId),
+    getPost(session.user.tenantId, postId),
+  ]);
   if (!post) notFound();
   if (post.authorId !== session.user.id) {
     return (
@@ -36,8 +38,6 @@ export default async function EditPostPage({
     );
   }
 
-  // 戻り先は ?from=mypage|detail で明示。未指定時は下書きならマイページ、
-  // 公開済みなら詳細にフォールバックする。
   const fromParam = typeof sp.from === "string" ? sp.from : undefined;
   const isDraft = (post as { isPublished?: boolean }).isPublished === false;
   const fallback: "mypage" | "detail" = isDraft ? "mypage" : "detail";

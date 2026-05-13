@@ -16,57 +16,21 @@ function domainFromEmail(email: string): string | null {
   return email.slice(at + 1).toLowerCase();
 }
 
-function isLocalAuthEnvironment(): boolean {
-  const authUrl = (process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "").toLowerCase();
-  return (
-    process.env.NODE_ENV !== "production" ||
-    authUrl.includes("localhost") ||
-    authUrl.includes("127.0.0.1")
-  );
-}
-
 function resolveGoogleClientId(): string {
-  if (isLocalAuthEnvironment()) {
-    return (
-      process.env.AUTH_GOOGLE_ID_DEV ??
-      process.env.GOOGLE_CLIENT_ID_DEV ??
-      process.env.AUTH_GOOGLE_ID ??
-      process.env.GOOGLE_CLIENT_ID ??
-      ""
-    );
-  }
-
   return process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID ?? "";
 }
 
 function resolveGoogleClientSecret(): string {
-  if (isLocalAuthEnvironment()) {
-    return (
-      process.env.AUTH_GOOGLE_SECRET_DEV ??
-      process.env.GOOGLE_CLIENT_SECRET_DEV ??
-      process.env.AUTH_GOOGLE_SECRET ??
-      process.env.GOOGLE_CLIENT_SECRET ??
-      ""
-    );
-  }
-
   return process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Next.js の basePath が /jugyobase のとき、AUTH_URL に /jugyobase を含めると
-  // Auth.js が basePath を /jugyobase だけと誤り `/jugyobase/callback/google` になる。
-  // 実ルートは App Router の `/jugyobase/api/auth/*` なのでここで明示する。
   basePath: `${APP_BASE_PATH}/api/auth`,
-  // 開発時の UntrustedHost を避けるため有効化。
-  // OAuth の redirect URI は Google Console 側を localhost に揃えて運用する。
   trustHost: true,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   providers: [
     Google({
-      // このアプリは運用で User を事前作成してから Google ログインさせる。
-      // 同一メールの OAuth 初回ログイン時に Account を紐付けるため有効化する。
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
@@ -97,39 +61,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? ((profile as { hd?: string }).hd ?? "").toLowerCase()
             : null;
 
-        // hd ヒントは UI 側誘導。最終的な許可判定はメールドメインで行う。
         if (!loginDomain || loginDomain !== allowedDomain) {
           return false;
         }
         if (profileHd && profileHd !== allowedDomain) {
           return false;
         }
-      }
-
-      // 開発時のみ: demo テナントは事前 User 作成なしで Google アカウントを紐付け可能。
-      // （同一 email は 1 件のため、別テナント所属だった場合はこのログインで demo に寄せる）
-      if (process.env.NODE_ENV !== "production" && slug === "demo") {
-        const displayName =
-          typeof profile?.name === "string" && profile.name.trim()
-            ? profile.name.trim()
-            : email.split("@")[0] ?? email;
-        await prisma.user.upsert({
-          where: { email },
-          create: {
-            email,
-            name: displayName,
-            tenantId: tenant.id,
-            tenantSlug: slug,
-          },
-          update: {
-            tenantId: tenant.id,
-            tenantSlug: slug,
-            ...(typeof profile?.name === "string" && profile.name.trim()
-              ? { name: profile.name.trim() }
-              : {}),
-          },
-        });
-        return true;
       }
 
       const user = await prisma.user.findUnique({

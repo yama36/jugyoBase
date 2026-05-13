@@ -30,7 +30,6 @@ export default async function PostDetailPage({
   const tenantId = await resolveViewTenantId(tenantSlug);
   if (!tenantId) notFound();
 
-  // 戻り先は ?from=mypage で明示。未指定時は一覧へフォールバック。
   const fromParam = typeof sp.from === "string" ? sp.from : undefined;
   const backToMypage = fromParam === "mypage";
   const backHref = backToMypage

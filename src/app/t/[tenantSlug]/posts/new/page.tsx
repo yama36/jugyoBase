@@ -31,8 +31,10 @@ export default async function NewPostPage({
     );
   }
 
-  const curriculumUnits = await listCurriculumUnitOptions();
-  const searchOptions = await listPostSearchOptions(session.user.tenantId);
+  const [curriculumUnits, searchOptions] = await Promise.all([
+    listCurriculumUnitOptions(),
+    listPostSearchOptions(session.user.tenantId),
+  ]);
 
   return (
     <div className="space-y-6">

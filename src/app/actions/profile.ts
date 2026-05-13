@@ -34,14 +34,11 @@ export async function updateProfile(
       where: { id: session.user.id },
       data: { name, bio, position, subjects, grades } as any,
     });
-    const urlSlug = String(formData.get("tenantSlug") ?? "").trim();
-    const pathsSlug =
-      process.env.NODE_ENV !== "production" && urlSlug ? urlSlug : session.user.tenantSlug!;
-    revalidatePath(`/t/${pathsSlug}/mypage`);
-    revalidatePath(`/t/${pathsSlug}/profile/edit`);
+    const slug = session.user.tenantSlug!;
+    revalidatePath(`/t/${slug}/mypage`);
+    revalidatePath(`/t/${slug}/profile/edit`);
     return { ok: true };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "更新に失敗しました" };
   }
 }

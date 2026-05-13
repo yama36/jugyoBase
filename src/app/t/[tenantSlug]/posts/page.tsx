@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
-import { AutoRefresh } from "@/components/AutoRefresh";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import {
   getGradeBadgeClasses,
@@ -36,14 +35,16 @@ export default async function PostsPage({
   const unit = typeof sp.unit === "string" ? sp.unit : undefined;
   const tag = typeof sp.tag === "string" ? sp.tag : undefined;
 
-  const posts = await listPosts(tenantId, {
-    q,
-    grade,
-    subject,
-    unit,
-    tag,
-  });
-  const options = await listPostSearchOptions(tenantId);
+  const [posts, options] = await Promise.all([
+    listPosts(tenantId, {
+      q,
+      grade,
+      subject,
+      unit,
+      tag,
+    }),
+    listPostSearchOptions(tenantId),
+  ]);
   const hasSearchParams = Boolean(q || grade || subject || unit || tag);
 
   return (
@@ -54,9 +55,6 @@ export default async function PostsPage({
           <p className="mt-1 text-sm text-zinc-600">
             学年・教科・単元・タグ・キーワードで絞り込めます
           </p>
-          <div className="mt-2">
-            <AutoRefresh />
-          </div>
         </div>
         {canCreatePost ? (
           <Link

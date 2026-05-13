@@ -134,7 +134,14 @@ export async function listPosts(
       include: {
         author: { select: { id: true, name: true, image: true } },
         tags: { include: { tag: true } },
-        attachments: true,
+        attachments: {
+          select: {
+            id: true,
+            kind: true,
+            originalFilename: true,
+            malwareScanStatus: true,
+          },
+        },
         _count: { select: { likes: true, comments: true } },
       } as any,
     }),
@@ -195,9 +202,6 @@ export async function listCurriculumUnitOptions(): Promise<CurriculumUnitOption[
     });
   }
 
-  console.warn(
-    "Prisma client is stale and does not include curriculumUnit delegate. Falling back to raw query.",
-  );
   return prisma.$queryRaw<CurriculumUnitOption[]>`
     SELECT
       "grade",
@@ -312,8 +316,7 @@ export async function createShellDraftPost(
       }),
     );
     return { ok: true, postId: post.id };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "下書きの準備に失敗しました" };
   }
 }
@@ -384,10 +387,7 @@ export async function createPost(
         subject: data.subject,
         unit: data.unit,
       });
-    } catch (e) {
-      // 単元候補登録に失敗しても投稿保存は継続する。
-      console.warn("curriculum unit upsert failed", e);
-    }
+    } catch {}
 
     const isDraft = formData.get("isDraft") === "on";
 
@@ -415,8 +415,7 @@ export async function createPost(
 
     revalidatePath(`/t/${tenantSlug}/posts`);
     return { ok: true, postId: post.id };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "保存に失敗しました" };
   }
 }
@@ -492,9 +491,7 @@ export async function updatePost(
         subject: data.subject,
         unit: data.unit,
       });
-    } catch (e) {
-      console.warn("curriculum unit upsert failed", e);
-    }
+    } catch {}
 
     const isDraft = formData.get("isDraft") === "on";
 
@@ -523,8 +520,7 @@ export async function updatePost(
     revalidatePath(`/t/${tenantSlug}/posts/${postId}/edit`);
     revalidatePath(`/t/${tenantSlug}/posts/new`);
     return { ok: true };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "更新に失敗しました" };
   }
 }
@@ -548,9 +544,7 @@ export async function deletePost(
     for (const a of existing.attachments) {
       try {
         await deleteObject(a.storageKey);
-      } catch (e) {
-        console.error("S3 delete failed", e);
-      }
+      } catch {}
     }
   }
 
@@ -560,8 +554,7 @@ export async function deletePost(
     );
     revalidatePath(`/t/${tenantSlug}/posts`);
     return { ok: true };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "削除に失敗しました" };
   }
 }
@@ -607,8 +600,7 @@ export async function presignUploadForPost(input: {
       mimeType: input.mimeType,
     });
     return { ok: true, uploadUrl, storageKey };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "署名付き URL の発行に失敗しました" };
   }
 }
@@ -664,8 +656,7 @@ export async function registerAttachment(input: {
     revalidatePath(`/t/${input.tenantSlug}/posts/${input.postId}/edit`);
     revalidatePath(`/t/${input.tenantSlug}/posts/new`);
     return { ok: true };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "添付の登録に失敗しました" };
   }
 }
@@ -739,8 +730,7 @@ export async function getAttachmentDownloadUrl(
   try {
     const url = await presignGetObject(row.storageKey);
     return { ok: true, url };
-  } catch (e) {
-    console.error(e);
+  } catch {
     return { ok: false, message: "ダウンロード URL の発行に失敗しました" };
   }
 }
