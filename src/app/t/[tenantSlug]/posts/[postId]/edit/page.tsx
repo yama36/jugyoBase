@@ -7,6 +7,7 @@ import {
   listPostSearchOptions,
 } from "@/app/actions/posts";
 import { PostEditor } from "@/components/PostEditor";
+import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 
 export default async function EditPostPage({
   params,
@@ -70,6 +71,7 @@ export default async function EditPostPage({
         post={post}
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}
+        malwareScanGate={isMalwareScanGateEnabled()}
       />
     </div>
   );

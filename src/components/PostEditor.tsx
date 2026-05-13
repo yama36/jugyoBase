@@ -21,6 +21,8 @@ type Props =
       draftPostId: string;
       curriculumUnits: CurriculumUnitOption[];
       hashtagSuggestions: string[];
+      /** `MALWARE_SCAN_WEBHOOK_SECRET` 設定時 true（サーバーから渡す） */
+      malwareScanGate?: boolean;
     }
   | {
       mode: "edit";
@@ -28,6 +30,7 @@ type Props =
       post: PostWithTags;
       curriculumUnits: CurriculumUnitOption[];
       hashtagSuggestions: string[];
+      malwareScanGate?: boolean;
     };
 
 export function PostEditor(props: Props) {
@@ -74,7 +77,11 @@ export function PostEditor(props: Props) {
   return (
     <div className="space-y-6">
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <AttachmentUploader tenantSlug={tenantSlug} postId={postId} />
+        <AttachmentUploader
+          tenantSlug={tenantSlug}
+          postId={postId}
+          malwareScanGate={props.malwareScanGate ?? false}
+        />
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">

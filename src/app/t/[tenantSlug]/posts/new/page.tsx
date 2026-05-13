@@ -5,6 +5,7 @@ import {
   listPostSearchOptions,
 } from "@/app/actions/posts";
 import { auth } from "@/auth";
+import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
@@ -37,9 +38,6 @@ export default async function NewPostPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">新規投稿</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          画面を開いた時点で下書きを用意します（空の下書きがあれば再利用）。一番上でファイルを添付してから入力しても構いません。
-        </p>
       </div>
       <PostEditor
         mode="create"
@@ -47,6 +45,7 @@ export default async function NewPostPage({
         draftPostId={draft.postId}
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}
+        malwareScanGate={isMalwareScanGateEnabled()}
       />
     </div>
   );

@@ -8,7 +8,14 @@ export async function GET(
   const { tenantSlug, attachmentId } = await ctx.params;
   const r = await getAttachmentDownloadUrl(tenantSlug, attachmentId);
   if (!r.ok) {
-    return new NextResponse(r.message, { status: 404 });
+    const status =
+      typeof r.httpStatus === "number" && r.httpStatus >= 400
+        ? r.httpStatus
+        : 404;
+    return new NextResponse(r.message, {
+      status,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   }
   return NextResponse.redirect(r.url);
 }

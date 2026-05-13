@@ -135,6 +135,14 @@ enum AttachmentKind {
   video
 }
 
+/// 添付のマルウェア検査状態（Lambda 等のイベント駆動スキャナが更新）
+enum AttachmentMalwareScanStatus {
+  pending
+  clean
+  infected
+  error
+}
+
 /// 授業実践の共有投稿
 model Post {
   id               String          @id @default(cuid())
@@ -212,6 +220,10 @@ model Attachment {
   sizeBytes        Int
   originalFilename String
   storageKey       String         @unique
+  /// MALWARE_SCAN_WEBHOOK_SECRET 設定時は新規 pending。clean になるまでダウンロード不可。
+  malwareScanStatus AttachmentMalwareScanStatus @default(clean)
+  malwareScannedAt  DateTime?
+  malwareScanDetail String?      @db.Text
   createdAt        DateTime       @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)

@@ -218,26 +218,73 @@ export default async function PostDetailPage({
           <p className="text-sm text-zinc-600">添付はありません</p>
         ) : (
           <ul className="space-y-2">
-            {post.attachments.map((a) => (
-              <li key={a.id}>
-                <a
-                  href={`/t/${tenantSlug}/files/${a.id}`}
-                  className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
-                      {a.kind}
-                    </span>
-                    <span className="truncate text-sky-800">
-                      {a.originalFilename}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-xs text-zinc-500">
-                    {(a.sizeBytes / 1024).toFixed(1)} KiB
-                  </span>
-                </a>
-              </li>
-            ))}
+            {post.attachments.map((a) => {
+              const downloadable = a.malwareScanStatus === "clean";
+              const rowClass =
+                "flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition";
+              const pendingOrError =
+                a.malwareScanStatus === "pending" || a.malwareScanStatus === "error";
+              return (
+                <li key={a.id}>
+                  {downloadable ? (
+                    <a
+                      href={`/t/${tenantSlug}/files/${a.id}`}
+                      className={`${rowClass} border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                          {a.kind}
+                        </span>
+                        <span className="truncate text-sky-800">
+                          {a.originalFilename}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-xs text-zinc-500">
+                        {(a.sizeBytes / 1024).toFixed(1)} KiB
+                      </span>
+                    </a>
+                  ) : (
+                    <div
+                      className={`${rowClass} border-amber-200 bg-amber-50/60 text-zinc-700`}
+                    >
+                      <span className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                            {a.kind}
+                          </span>
+                          <span className="truncate font-medium">
+                            {a.originalFilename}
+                          </span>
+                          {a.malwareScanStatus === "pending" ? (
+                            <span className="rounded bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900">
+                              マルウェア検査中（ダウンロードは検査完了後）
+                            </span>
+                          ) : null}
+                          {a.malwareScanStatus === "error" ? (
+                            <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                              検査エラー（ダウンロード不可）
+                            </span>
+                          ) : null}
+                          {a.malwareScanStatus === "infected" ? (
+                            <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                              利用不可
+                            </span>
+                          ) : null}
+                        </span>
+                        {pendingOrError && a.malwareScanDetail ? (
+                          <span className="text-xs text-zinc-500">
+                            {a.malwareScanDetail}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 text-xs text-zinc-500">
+                        {(a.sizeBytes / 1024).toFixed(1)} KiB
+                      </span>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

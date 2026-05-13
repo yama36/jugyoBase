@@ -8,6 +8,7 @@ import { parseHashtagInput } from "@/lib/hashtags";
 import { withTenantRls } from "@/lib/prisma-tenant";
 import { buildPostSearchText } from "@/lib/search-text";
 import { prisma } from "@/lib/prisma";
+import { initialMalwareScanStatus } from "@/lib/malware-scan";
 import {
   isMimeAllowedForKind,
   isS3Configured,
@@ -655,6 +656,7 @@ export async function registerAttachment(input: {
           sizeBytes: input.sizeBytes,
           originalFilename: input.originalFilename,
           storageKey: input.storageKey,
+          malwareScanStatus: initialMalwareScanStatus(),
         },
       }),
     );
@@ -668,10 +670,14 @@ export async function registerAttachment(input: {
   }
 }
 
+export type AttachmentDownloadUrlResult =
+  | { ok: true; url: string }
+  | { ok: false; message: string; httpStatus?: number };
+
 export async function getAttachmentDownloadUrl(
   tenantSlug: string,
   attachmentId: string,
-): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+): Promise<AttachmentDownloadUrlResult> {
   const session = await auth();
 
   let tenantId: string | null = null;
@@ -704,6 +710,30 @@ export async function getAttachmentDownloadUrl(
 
   if (!row || row.post.tenantId !== tenantId) {
     return { ok: false, message: "見つかりません" };
+  }
+
+  if (row.malwareScanStatus === "pending") {
+    return {
+      ok: false,
+      message:
+        "マルウェア検査が完了していません。しばらくしてから再度お試しください。",
+      httpStatus: 403,
+    };
+  }
+  if (row.malwareScanStatus === "error") {
+    return {
+      ok: false,
+      message:
+        "添付ファイルの検査でエラーが発生したため、ダウンロードできません。",
+      httpStatus: 403,
+    };
+  }
+  if (row.malwareScanStatus === "infected") {
+    return {
+      ok: false,
+      message: "この添付は利用できません。",
+      httpStatus: 403,
+    };
   }
 
   try {

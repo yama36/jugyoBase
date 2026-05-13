@@ -191,10 +191,15 @@ export default async function PostsPage({
                 id: string;
                 kind: "image" | "pdf" | "slide" | "video";
                 originalFilename: string;
+                malwareScanStatus: "pending" | "clean" | "infected" | "error";
               }[];
             }).attachments ?? [];
-            const imageAttachment = attachments.find((a) => a.kind === "image");
-            const pdfAttachment = attachments.find((a) => a.kind === "pdf");
+            const imageAttachment = attachments.find(
+              (a) => a.kind === "image" && a.malwareScanStatus === "clean",
+            );
+            const pdfAttachment = attachments.find(
+              (a) => a.kind === "pdf" && a.malwareScanStatus === "clean",
+            );
             const thumbAttachment = imageAttachment ?? pdfAttachment ?? null;
             const thumbHref = thumbAttachment
               ? `/t/${tenantSlug}/files/${thumbAttachment.id}`
