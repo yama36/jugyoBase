@@ -6,11 +6,13 @@
 
 - 本番では Next.js の **`basePath` が `/jugyobase`**（例: `https://identfill.com/jugyobase/t/{slug}/posts`）。ローカルでも `http://localhost:3000/jugyobase` からアクセスします。
 - テナント URL: `/t/{学校スラッグ}/…`（他校データは見えない）
-- Google ログイン（**事前登録メール**のみ、任意で `hd` ドメイン制限）
-- 投稿: 学年・教科・単元・めあて（必須）、振り返り・POINT・流れ・ハッシュタグ（任意）
+- **URL の学校スラッグとログイン中ユーザの所属テナントは常に一致している必要がある**（`npm run dev` でも本番と同じ）。別校のスラッグを開いた場合は middleware が、所属校の同じパスへリダイレクトする。
+- Google ログイン（**事前登録メール**のみ、任意で `hd` ドメイン制限）。ログインに使うメールは、対象テナントに紐づく `User` 行が既に DB に存在している必要がある（初回から自動作成はしない）。
+- 投稿: 学年・教科・単元・めあて（必須）、振り返り・POINT・流れ・ハッシュタグ（任意）。閲覧専用ロール（`readonly`）は新規投稿不可。
 - 検索: 学年・教科・単元・タグ・キーワード（`searchText` の部分一致）
-- 添付: PDF / スライド / 画像 / 動画（署名付き URL で S3 互換へ直接アップロード）
-- 編集・削除は **作成者のみ**（ロールなし運用）
+- 事例一覧: ブラウザの再読み込みや画面遷移で最新表示（一定間隔の自動リフレッシュは行わない）。
+- 添付: PDF / スライド / 画像 / 動画（署名付き URL で S3 互換へ直接アップロード）。任意でマルウェア検査 Webhook を設定すると、検査が終わるまでダウンロードを抑止できる（`.env.example` の `MALWARE_SCAN_WEBHOOK_SECRET`）。
+- 投稿の編集・削除は **作成者**、または **管理者（`admin`）**。管理者向けに統計・ユーザー管理・校設定・指導要領単元マスタなどの画面がある。
 
 ## セットアップ
 
@@ -52,6 +54,8 @@ npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --ema
 npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --email you@demo.school.jp --domain demo.school.jp
 ```
 
+**デモ用シード**（`npm run db:seed`）では、テナント `slug=demo` とユーザ `demo-teacher@example.com` が upsert される。デモ校で Google ログインする場合は、このメール（または `create-tenant-user` で登録したメール）を OAuth で使い、Google Console 側のテストユーザ等も忘れずに。
+
 ### 5. ファイルストレージ（MinIO 例）
 
 `docker-compose.yml` の MinIO を起動したうえで:
@@ -76,22 +80,12 @@ npm run dev
 
 ### Google OAuth の `redirect_uri_mismatch` 対策
 
-Google Cloud Console の OAuth 2.0 クライアントで、環境ごとのリダイレクト URI を登録してください。
+アプリは **常に** `AUTH_GOOGLE_ID` と `AUTH_GOOGLE_SECRET`（互換で `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`）だけを参照する。環境ごとに別クライアントを使う場合は、Google Cloud Console で複数クライアントを作成し、`.env` を切り替える。
+
+Google Cloud Console の OAuth 2.0 クライアントで、使うオリジンごとにリダイレクト URI を登録する。
 
 - 開発: `http://localhost:3000/jugyobase/api/auth/callback/google`
 - 本番（サブパス例）: `https://identfill.com/jugyobase/api/auth/callback/google`
-
-加えて、このリポジトリは開発時に `*_DEV` の環境変数を優先できます。
-
-```bash
-# 開発（localhost）用
-AUTH_GOOGLE_ID_DEV="..."
-AUTH_GOOGLE_SECRET_DEV="..."
-
-# 本番用（既存）
-AUTH_GOOGLE_ID="..."
-AUTH_GOOGLE_SECRET="..."
-```
 
 `AUTH_URL` は**オリジン**（例: 開発 `http://localhost:3000`、本番 `https://identfill.com`）でよい。Auth.js のルートは `src/auth.ts` で `basePath` を `/jugyobase/api/auth` に固定している。`AUTH_URL` に `/jugyobase` だけ含めると誤解釈で `redirect_uri_mismatch` になる。
 
@@ -112,6 +106,6 @@ AUTH_GOOGLE_SECRET="..."
 | ------------------- | -------------------- |
 | `npm run db:migrate` | `migrate deploy`     |
 | `npm run db:generate`| Prisma Client 生成   |
-| `npm run db:seed`    | デモ用シード（任意） |
+| `npm run db:seed`    | デモテナント・中学校単元マスタ・`demo-teacher@example.com`（任意） |
 | `npm run tenant:create` | `tsx scripts/create-tenant-user.ts` の短縮 |
 | `npm run build`      | 本番ビルド           |
