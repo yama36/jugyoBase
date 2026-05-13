@@ -46,6 +46,16 @@ export default async function HomePage() {
           ))}
         </ul>
       )}
+      <p className="text-xs text-zinc-500">
+        はじめてご利用の方は{" "}
+        <Link
+          href="/help"
+          className="text-sky-700 underline-offset-2 hover:underline"
+        >
+          使い方
+        </Link>{" "}
+        をご覧ください。
+      </p>
     </div>
   );
 }

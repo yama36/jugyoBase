@@ -33,7 +33,7 @@ export default async function TenantLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-50">
+    <div className="flex min-h-dvh flex-col bg-zinc-50">
       {showFullNav ? (
         <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
@@ -122,7 +122,17 @@ export default async function TenantLayout({
           </div>
         </header>
       ) : null}
-      <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+        {children}
+      </main>
+      <footer className="mt-8 border-t border-zinc-200 bg-white">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-zinc-500">
+          <span>jugyoBase</span>
+          <Link href="/help" className="hover:text-zinc-800">
+            使い方
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

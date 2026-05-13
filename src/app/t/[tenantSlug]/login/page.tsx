@@ -49,9 +49,12 @@ export default async function TenantLoginPage({
           Google で続行
         </button>
       </form>
-      <p className="text-xs text-zinc-500">
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
         <Link href="/" className="underline-offset-2 hover:underline">
           トップへ戻る
+        </Link>
+        <Link href="/help" className="underline-offset-2 hover:underline">
+          使い方を見る
         </Link>
       </p>
     </div>
