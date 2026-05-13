@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-export default function HelpLayout({ children }: { children: React.ReactNode }) {
+export default function ContactLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
           <Link
             href="/"
             className="text-sm font-semibold tracking-tight text-zinc-900"
@@ -12,6 +12,9 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
             jugyoBase
           </Link>
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-600">
+            <Link href="/help" className="hover:text-zinc-900">
+              使い方
+            </Link>
             <Link href="/contact" className="font-medium text-sky-700 hover:text-sky-900">
               お問い合わせ
             </Link>

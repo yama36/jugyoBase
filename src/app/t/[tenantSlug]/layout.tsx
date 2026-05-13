@@ -128,9 +128,14 @@ export default async function TenantLayout({
       <footer className="mt-8 border-t border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-zinc-500">
           <span>jugyoBase</span>
-          <Link href="/help" className="hover:text-zinc-800">
-            使い方
-          </Link>
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Link href="/help" className="hover:text-zinc-800">
+              使い方
+            </Link>
+            <Link href="/contact" className="text-sky-700 hover:text-sky-900">
+              お問い合わせ
+            </Link>
+          </span>
         </div>
       </footer>
     </div>
