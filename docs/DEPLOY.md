@@ -3,7 +3,9 @@
 Ubuntu 22.04 / 24.04 LTS の VPS 1 台に、以下をすべて同居させる構成を前提とした手順です。
 
 ```
-identfill.com (HTTPS, 443) ──▶ Nginx ──▶ 127.0.0.1:3001  Next.js (systemd)
+identfill.com (HTTPS, 443) ──▶ Nginx ──┬─▶ 127.0.0.1:3001  Next.js jugyoBase（Docker app→/jugyobase）
+                                        │
+                                        ├─▶ （任意）127.0.0.1:????  /space（RSS 等・既存）
                                         │
                                         ├─▶ 127.0.0.1:5432  PostgreSQL (docker)
                                         │
@@ -11,6 +13,7 @@ s3.identfill.com (HTTPS, 443) ──▶ Nginx ──▶ 127.0.0.1:9000  MinIO (d
 ```
 
 - アプリは `/jugyobase` サブパス配信（`https://identfill.com/jugyobase/...`）
+- 同一ホストで **`https://identfill.com/space/...` に RSS 等を載せている場合**、Nginx で `/space` を jugyoBase のプロキシより先にルーティングする（手順 7 と [`deploy/nginx/identfill.conf`](../deploy/nginx/identfill.conf) のコメント例を参照）。リポジトリ同梱の `identfill.conf` だけをそのまま適用すると、`location /` が `404` のため **`/space` も 404 になる**点に注意する。
 - 添付ファイルはブラウザから `https://s3.identfill.com` に直接 PUT/GET（署名 URL）
 - リポジトリ同梱の設定ファイルは [`deploy/`](../deploy/) 配下。
 
@@ -50,7 +53,7 @@ s3.identfill.com (HTTPS, 443) ──▶ Nginx ──▶ 127.0.0.1:9000  MinIO (d
 apt update && apt upgrade -y
 apt install -y curl ca-certificates gnupg lsb-release ufw git nginx
 
-# Node.js 22 LTS（NodeSource）。Next.js 16 は Node 20+ が必要
+# Node.js 22 LTS（手順 8 の create-tenant-user 等をホストで npx するときに使用。アプリ本体は Docker 内でビルド）
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 node -v   # v22.x になっていること
@@ -113,7 +116,7 @@ nano .env.production
 | 変数                       | 例 / 説明                                                   |
 |----------------------------|--------------------------------------------------------------|
 | `POSTGRES_PASSWORD`        | 手順 0 で生成した値                                          |
-| `DATABASE_URL`             | パスワード部分を上と一致させる                               |
+| `DATABASE_URL`             | 例のとおり `127.0.0.1:5432`（ホストからの `tsx` / ツール用）。**Docker の `app` は compose が `postgres` ホストに差し替える**ので、この行はそのままでよい |
 | `AUTH_SECRET`              | 手順 0 で生成した値                                          |
 | `AUTH_GOOGLE_ID`           | Google Cloud Console のクライアント ID                       |
 | `AUTH_GOOGLE_SECRET`       | 同シークレット                                               |
@@ -128,13 +131,15 @@ nano .env.production
 
 ## 4. PostgreSQL と MinIO を起動
 
+この段階では **`app`（Next.js）はまだ起動しない**（手順 6 でマイグレーションとビルド後に立ち上げる）。
+
 ```bash
 # jugyobase ユーザ・/opt/jugyobase で実行
-docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
-docker compose -f deploy/docker-compose.prod.yml ps
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d postgres minio
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production ps
 ```
 
-両方 `healthy` になることを確認する。
+`postgres` と `minio` が `healthy` になることを確認する。
 
 > 公開ポートはどちらも `127.0.0.1:` バインドなので外部からは到達できない。アプリと Nginx だけが localhost 経由で叩く。
 
@@ -165,29 +170,34 @@ docker run --rm --network host \
 
 ---
 
-## 6. Next.js のビルドと systemd 登録
+## 6. Next.js イメージのビルドと systemd 登録（Docker）
+
+アプリは **Docker イメージ**でビルドし、`deploy/docker-compose.prod.yml` の `app` サービスで起動する。ホストに Node で `npm run build` する方式は廃止した。
 
 ```bash
-# まだ jugyobase ユーザのまま、/opt/jugyobase で
-# NODE_ENV=production が残っていると devDependencies が省略されて next build が失敗する
-unset NODE_ENV
-npm ci --include=dev      # devDependencies も含めて入れる（next build に必要）
-npm run db:migrate        # prisma migrate deploy
-npm run build
+# jugyobase ユーザ・/opt/jugyobase で
+# 初回または Dockerfile / 依存変更後にビルド
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production build app
+
+# DB マイグレーション（コンテナ内で prisma migrate deploy）
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
+
+# Postgres / MinIO / app をまとめて起動（既に DB だけ起動している場合も up で揃う）
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production ps
 ```
 
-> `prisma generate` は `postinstall` で自動実行される。
+`app` は compose 側で **`DATABASE_URL` を `postgres` ホストに差し替え**る（コンテナから `127.0.0.1:5432` では DB に届かないため）。ホストで `npx tsx scripts/...` を実行するときは、`.env.production` の `DATABASE_URL`（`127.0.0.1`）のままでよい。
 
-systemd ユニットを設置（ここから `root` 作業に戻る）。
+systemd は **compose 全体の `up -d` / `stop`** を担当する（ここから `root` 作業）。
 
 ```bash
-# 別ターミナルで root に戻る、もしくは `exit` してから
 exit                       # jugyobase ユーザを抜ける
 install -m 644 /opt/jugyobase/deploy/systemd/jugyobase.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now jugyobase
 systemctl status jugyobase --no-pager
-journalctl -u jugyobase -e --no-pager   # ▶ Ready in ... と出れば OK
+docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml --env-file /opt/jugyobase/.env.production ps
 ```
 
 `curl -I http://127.0.0.1:3001/jugyobase/` で 200 か 302 が返れば、アプリは起動している。
@@ -210,6 +220,16 @@ systemctl reload nginx
 ```
 
 この時点ではまだ HTTPS 証明書が無いので、443 のリスナーはエラーになる。先に HTTP 側だけ有効にして certbot を走らせる手もあるが、`certbot --nginx` は不足を自動で補ってくれるのでそのまま実行する。
+
+#### identfill.com の `/space`（RSS）と同居させる場合
+
+本番で **`https://identfill.com/space`** で RSS を出している場合のチェックリストです。
+
+1. **初回適用前に** [`deploy/nginx/identfill.conf`](../deploy/nginx/identfill.conf) を開き、`location ^~ /jugyobase/` の**直後**・`location /` の**直前**に、`/space` 用の `location` を追加する（ファイル内のコメント例 A: リバースプロキシ／例 B: 静的 `alias`）。`^~` を付けておくと、プレフィックスが `/space` のリクエストが誤って catch-all に落ちにくい。
+2. **`git pull` で上書きする**と手元で足した `/space` ブロックが消える可能性がある。運用では (a) リポジトリ側に `/space` 設定をコミットしておく、(b) もしくは `/etc/nginx/sites-available/identfill-local.conf` のような **include 用ファイル**に `/space` だけを書き、`identfill.conf` から `include` する、のどちらかにすると更新時の事故が減る。
+3. **certbot の `-d` リスト**は従来どおり `identfill.com` で足りる。`/space` はパスなので追加の SAN は不要（別サブドメインで RSS を出しているなら、そのホスト名を DNS と certbot に含める）。
+4. **jugyoBase の更新**（手順 10 の `sudo systemctl restart jugyobase`）は **`/space` の upstream には触れない**。RSS 側を別プロセスで動かしているなら、そのプロセスのデプロイ手順は別ドキュメントで管理する。
+5. 動作確認: `curl -sSI https://identfill.com/space` および実際のフィード URL（例: `.../space/feed.xml`）で **200** と想定どおりの `Content-Type`（多くは `application/rss+xml` や `application/atom+xml`、または `text/xml`）が返ること。
 
 ### 7-2. Let's Encrypt 証明書
 
@@ -260,6 +280,7 @@ npx tsx scripts/create-tenant-user.ts \
 2. `https://identfill.com/jugyobase/t/demo/login` で Google ログイン → 投稿一覧に着地する
 3. 投稿を作成 → 添付ファイル PUT が `https://s3.identfill.com/jugyobase/...` に飛び、ステータス 200 で完了する
 4. 一覧から添付をダウンロード → 署名 URL（`s3.identfill.com`）にリダイレクトされ取得できる
+5. **`/space` を運用している場合**: フィード URLをブラウザまたは `curl` で開き、RSS が従来どおり取得できること（jugyoBase 更新直後にここだけ確認すると Nginx の取り違えに気づきやすい）
 
 `redirect_uri_mismatch` が出た場合は Google Cloud Console のリダイレクト URI 設定を再確認（README のトラブルシュート節も参照）。
 
@@ -273,27 +294,34 @@ npx tsx scripts/create-tenant-user.ts \
 sudo -iu jugyobase
 cd /opt/jugyobase
 git pull
-unset NODE_ENV
-npm ci --include=dev
-npm run db:migrate       # マイグレーション差分があるとき
-npm run build
+# Nginx: identfill.conf をリポジトリから丸ごと install し直すと、
+# 本番のみ存在する /space 用の location が消えることがある。差分を確認してから reload する。
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production build app
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
 exit
-systemctl restart jugyobase
+sudo systemctl restart jugyobase
+# 上記は compose を stop してから up -d し直す。DB/MinIO も一度止まるが数秒で復帰する。
+# RSS (/space) は別サービスなら、そのユニットも必要に応じて restart
 ```
+
+マイグレーションが不要な更新だけなら、`run --rm app npx prisma migrate deploy` は省略してよい。
 
 ### ログ
 
 | 対象             | コマンド                                                     |
 |------------------|--------------------------------------------------------------|
-| Next.js          | `journalctl -u jugyobase -f`                                  |
+| Next.js（app）   | `docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml --env-file /opt/jugyobase/.env.production logs -f app` |
+| systemd（起動）  | `journalctl -u jugyobase -e --no-pager`                       |
 | Nginx            | `tail -f /var/log/nginx/{access,error}.log`                   |
-| Postgres / MinIO | `docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml logs -f` |
+| Postgres / MinIO | `docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml --env-file /opt/jugyobase/.env.production logs -f postgres minio` |
 
 ### バックアップ（最低限）
 
 ```bash
 # DB ダンプ（毎日 cron で /var/backups/jugyobase に保存する例）
-docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml ps -q postgres) \
+# .env.production から POSTGRES_USER / POSTGRES_DB を読み込む想定
+set -a; source /opt/jugyobase/.env.production; set +a
+docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml --env-file /opt/jugyobase/.env.production ps -q postgres) \
   pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
   | gzip > /var/backups/jugyobase/db-$(date +%F).sql.gz
 
@@ -315,3 +343,5 @@ docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml
 | MinIO の署名検証エラー（`SignatureDoesNotMatch`）   | `MINIO_SERVER_URL` と `S3_ENDPOINT` が同じ値・かつ Nginx が `Host` を書き換えていないことを確認。`.env.production` 変更後は compose の `up -d` で MinIO を再起動。 |
 | Server Action で 500 / 大きいフォーム送信が落ちる    | `identfill.conf` の `client_max_body_size` を調整。`proxy_read_timeout` も。                                                            |
 | `prisma migrate deploy` が `permission denied`     | `DATABASE_URL` のパスワードや `POSTGRES_USER` が compose 側と一致しているか確認。                                                       |
+| `docker compose` で app が起動しない（DB 接続エラー） | `app` の `DATABASE_URL` は compose が組み立てる。`POSTGRES_PASSWORD` に `@` `:` `/` 等が含まれると URL が壊れるので、パスワードは英数字中心にするか URL エンコードを検討。 |
+| `https://identfill.com/space/...` が **404**       | 同梱の `identfill.conf` では `location /` が `return 404` のため、`location ^~ /space/`（または静的 `alias`）を **`location /` より前**に追加したか確認。`nginx -t` 後に `systemctl reload nginx`。 |

@@ -1,12 +1,38 @@
-# 本番用 Postgres + MinIO（同一サーバ・Nginx の裏に置く想定）
+# 本番用 Postgres + MinIO + Next.js（同一サーバ・Nginx の裏に置く想定）
 # - すべてのポートは 127.0.0.1 にバインドし、外部からは Nginx 経由でしか到達できないようにする
 # - MinIO は s3.identfill.com で Nginx 越しに公開（MINIO_SERVER_URL で署名検証用ホストを揃える）
-# - 値は実運用前に `.env.production` から読ませる or 直接書き換える
+# - app コンテナ内の DB 接続先は environment の DATABASE_URL（ホスト postgres）。ホストで tsx を
+#   実行するときは .env.production の 127.0.0.1 の DATABASE_URL を使う。
 #
 # 起動: cd /opt/jugyobase && docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
-# 停止: docker compose -f deploy/docker-compose.prod.yml down
+# 停止: docker compose -f deploy/docker-compose.prod.yml stop
 
 services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env.production
+    environment:
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jugyobase}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-jugyobase}
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/jugyobase/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
