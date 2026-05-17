@@ -61,6 +61,9 @@ services:
       # 署名 URL のホストを Nginx 公開ホストに揃える（重要）
       MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://s3.identfill.com}
       MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://s3-console.identfill.com}
+      # ブラウザからの presigned PUT/GET 用 CORS（OSS MinIO はバケット CORS 不可のためクラスタ設定）
+      # Nginx の add_header と併用しないこと（Allow-Origin が二重になる）
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-https://identfill.com}
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
