@@ -39,7 +39,11 @@ export async function presignPutObject(params: {
     Key: storageKey,
     ContentType: params.mimeType,
   });
-  const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 60 * 15 });
+  // ContentType をコマンドに含める場合、実 PUT の Content-Type も署名に入れる（host のみだと MinIO が 403）
+  const uploadUrl = await getSignedUrl(client, cmd, {
+    expiresIn: 60 * 15,
+    signableHeaders: new Set(["content-type", "host"]),
+  });
   return { storageKey, uploadUrl };
 }
 

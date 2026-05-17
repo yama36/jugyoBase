@@ -20,6 +20,9 @@ services:
       PORT: "3000"
       # POSTGRES_PASSWORD に / + @ 等があると URL が壊れる。.env.production に URL エンコード済みの値を置く
       DATABASE_URL: ${DATABASE_URL_DOCKER:?set DATABASE_URL_DOCKER in .env.production}
+      # ブラウザ直 PUT の presigned URL に CRC32 が付くと MinIO が 403。SDK v3.729+ の既定を無効化
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
     ports:
       - "127.0.0.1:3001:3000"
     depends_on:
