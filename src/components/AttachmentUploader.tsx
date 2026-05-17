@@ -72,10 +72,10 @@ export function AttachmentUploader(props: {
         setMessage(presign.message);
         return;
       }
+      // File をそのまま渡すとブラウザが Content-Type を付け、host のみ署名の URL と MinIO が不整合で 403 になる
       const put = await fetch(presign.uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": mimeType },
-        body: file,
+        body: await file.arrayBuffer(),
       });
       if (!put.ok) {
         setMessage(`アップロードに失敗しました (${put.status})`);

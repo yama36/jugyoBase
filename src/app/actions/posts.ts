@@ -518,7 +518,9 @@ export async function updatePost(
     revalidatePath(`/t/${tenantSlug}/posts`);
     revalidatePath(`/t/${tenantSlug}/posts/${postId}`);
     revalidatePath(`/t/${tenantSlug}/posts/${postId}/edit`);
+    revalidatePath(`/t/${tenantSlug}/posts/${postId}/complete`);
     revalidatePath(`/t/${tenantSlug}/posts/new`);
+    revalidatePath(`/t/${tenantSlug}/mypage`);
     return { ok: true };
   } catch {
     return { ok: false, message: "更新に失敗しました" };

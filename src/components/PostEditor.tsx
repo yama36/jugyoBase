@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { updatePost } from "@/app/actions/posts";
 import type { Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
@@ -43,15 +44,29 @@ export function PostEditor(props: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
+    const fd = new FormData(form);
+    const isDraft = fd.get("isDraft") === "on";
+    const postId = String(fd.get("postId") ?? "");
+
     startTransition(async () => {
       setError(null);
-      const fd = new FormData(form);
       const r = await updatePost(null, fd);
-      if (r.ok) {
-        router.refresh();
-      } else {
+      if (!r.ok) {
         setError(r.message);
+        return;
       }
+
+      if (props.mode === "create") {
+        if (isDraft) {
+          toast.success("下書きに保存しました。", { id: "post-draft-saved" });
+          router.push(`/t/${tenantSlug}/mypage`);
+        } else {
+          router.push(`/t/${tenantSlug}/posts/${postId}/complete`);
+        }
+        return;
+      }
+
+      router.push(`/t/${tenantSlug}/posts/${props.post.id}`);
     });
   }
   const p = props.mode === "edit" ? props.post : null;

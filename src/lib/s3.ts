@@ -34,16 +34,13 @@ export async function presignPutObject(params: {
   const storageKey = `${params.tenantId}/${params.postId}/${randomUUID()}-${safeName}`;
 
   const client = getClient();
+  // ContentType は付けない（host のみ署名の presigned URL とブラウザの Content-Type 不一致で MinIO が 403 になる）
+  // MIME は DB（registerAttachment）で保持する
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: storageKey,
-    ContentType: params.mimeType,
   });
-  // ContentType をコマンドに含める場合、実 PUT の Content-Type も署名に入れる（host のみだと MinIO が 403）
-  const uploadUrl = await getSignedUrl(client, cmd, {
-    expiresIn: 60 * 15,
-    signableHeaders: new Set(["content-type", "host"]),
-  });
+  const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 60 * 15 });
   return { storageKey, uploadUrl };
 }
 

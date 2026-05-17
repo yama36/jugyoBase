@@ -226,7 +226,7 @@ export default async function PostDetailPage({
               return (
                 <li key={a.id}>
                   {downloadable ? (
-                    <a
+                    <Link
                       href={`/t/${tenantSlug}/files/${a.id}`}
                       className={`${rowClass} border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50`}
                     >
@@ -241,7 +241,7 @@ export default async function PostDetailPage({
                       <span className="shrink-0 text-xs text-zinc-500">
                         {(a.sizeBytes / 1024).toFixed(1)} KiB
                       </span>
-                    </a>
+                    </Link>
                   ) : (
                     <div
                       className={`${rowClass} border-amber-200 bg-amber-50/60 text-zinc-700`}

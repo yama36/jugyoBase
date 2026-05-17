@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import { withBasePath } from "@/lib/app-base-path";
 import {
   getGradeBadgeClasses,
   getSubjectBadgeClasses,
@@ -200,7 +201,7 @@ export default async function PostsPage({
             );
             const thumbAttachment = imageAttachment ?? pdfAttachment ?? null;
             const thumbHref = thumbAttachment
-              ? `/t/${tenantSlug}/files/${thumbAttachment.id}`
+              ? withBasePath(`/t/${tenantSlug}/files/${thumbAttachment.id}`)
               : null;
             const gradeColor = getGradeBadgeClasses(post.grade);
             const subjectColor = getSubjectBadgeClasses(post.subject);
