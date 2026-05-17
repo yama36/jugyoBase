@@ -4,6 +4,7 @@ import { APP_BASE_PATH } from "./src/lib/app-base-path";
 
 const nextConfig: NextConfig = {
   basePath: APP_BASE_PATH,
+  output: "standalone",
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 };
 

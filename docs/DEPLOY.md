@@ -5,7 +5,7 @@ Ubuntu 22.04 / 24.04 LTS の VPS 1 台に、以下をすべて同居させる構
 ```
 identfill.com (HTTPS, 443) ──▶ Nginx ──┬─▶ 127.0.0.1:3001  Next.js jugyoBase（Docker app→/jugyobase）
                                         │
-                                        ├─▶ （任意）127.0.0.1:????  /space（RSS 等・既存）
+                                        ├─▶ （任意）127.0.0.1:3101  /space（RSS 等・既存）
                                         │
                                         ├─▶ 127.0.0.1:5432  PostgreSQL (docker)
                                         │
@@ -116,7 +116,8 @@ nano .env.production
 | 変数                       | 例 / 説明                                                   |
 |----------------------------|--------------------------------------------------------------|
 | `POSTGRES_PASSWORD`        | 手順 0 で生成した値                                          |
-| `DATABASE_URL`             | 例のとおり `127.0.0.1:5432`（ホストからの `tsx` / ツール用）。**Docker の `app` は compose が `postgres` ホストに差し替える**ので、この行はそのままでよい |
+| `DATABASE_URL`             | 例のとおり `127.0.0.1:5432`（ホストからの `tsx` / ツール用） |
+| `DATABASE_URL_DOCKER`      | `postgresql://jugyobase:（パスワード）@postgres:5432/jugyobase`。`POSTGRES_PASSWORD` に `/` `+` `@` 等がある場合は **URL エンコードしたパスワード**を入れる（`node -e 'console.log(encodeURIComponent(process.argv[1]))' '生パスワード'`） |
 | `AUTH_SECRET`              | 手順 0 で生成した値                                          |
 | `AUTH_GOOGLE_ID`           | Google Cloud Console のクライアント ID                       |
 | `AUTH_GOOGLE_SECRET`       | 同シークレット                                               |
@@ -151,20 +152,26 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production ps
 
 ```bash
 # まだ Nginx を立てる前なので、ローカルの 9000 に直接叩く
+# 注: minio/mc イメージは ENTRYPOINT が `mc` のため、`sh -c` を直渡しすると失敗する。
+#     次のように `mc` をそのまま引数に渡す（または `--entrypoint /bin/sh` でシェル起動）。
+set -a; source .env.production; set +a
+SECRET="$(openssl rand -base64 24 | tr -d '/=+' | cut -c1-40)"
+
 docker run --rm --network host \
   -e MC_HOST_local=http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@127.0.0.1:9000 \
   --env-file .env.production \
-  minio/mc \
-  sh -c '
-    mc mb -p local/$S3_BUCKET &&
-    mc admin user svcacct add local $MINIO_ROOT_USER \
-      --access-key jugyobase-app \
-      --secret-key '"$(openssl rand -base64 24 | tr -d /=+ | cut -c1-40)"' \
-      --name "jugyobase application key"
-  '
+  minio/mc mb -p "local/${S3_BUCKET}"
+
+docker run --rm --network host \
+  -e MC_HOST_local=http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@127.0.0.1:9000 \
+  --env-file .env.production \
+  minio/mc admin user svcacct add local "${MINIO_ROOT_USER}" \
+    --access-key jugyobase-app \
+    --secret-key "${SECRET}" \
+    --name "jugyobase application key"
 ```
 
-上で表示されたアクセスキー / シークレットを `.env.production` の `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` に書き戻す。
+`.env.production` を更新する: **`S3_ACCESS_KEY_ID=jugyobase-app`**（上記コマンドどおり）、**`S3_SECRET_ACCESS_KEY`** にはホストで生成した **`$SECRET`** と同じ値を入れる（ターミナルで `echo "$SECRET"` と打てば再表示できる。忘れた場合は `svcacct` を削除してから別の `SECRET` で作り直す）。
 
 > ルートユーザ（`MINIO_ROOT_USER`）の鍵をそのままアプリに渡してもいいが、運用上はサービスアカウントを発行して鍵交換できるようにしておくのが安全。
 
@@ -187,7 +194,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production ps
 ```
 
-`app` は compose 側で **`DATABASE_URL` を `postgres` ホストに差し替え**る（コンテナから `127.0.0.1:5432` では DB に届かないため）。ホストで `npx tsx scripts/...` を実行するときは、`.env.production` の `DATABASE_URL`（`127.0.0.1`）のままでよい。
+`app` は compose 側で **`DATABASE_URL_DOCKER`**（`postgres` ホスト）を使う。ホストで `npx tsx scripts/...` を実行するときは `DATABASE_URL`（`127.0.0.1`）のままでよい。
 
 systemd は **compose 全体の `up -d` / `stop`** を担当する（ここから `root` 作業）。
 
@@ -200,7 +207,7 @@ systemctl status jugyobase --no-pager
 docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml --env-file /opt/jugyobase/.env.production ps
 ```
 
-`curl -I http://127.0.0.1:3001/jugyobase/` で 200 か 302 が返れば、アプリは起動している。
+`curl -I http://127.0.0.1:3001/jugyobase` で 200 か 302（DB 未接続時は 500 でもルートは生きている）が返れば、アプリは起動している。コンテナ内で `curl -sSI http://127.0.0.1:3000/jugyobase/t/morinan/login` が **404 ではなく 200/302/500** なら basePath が効いている（404 のままなら `docker compose build app --no-cache` で standalone イメージを作り直す）。
 
 ---
 
@@ -219,13 +226,13 @@ nginx -t
 systemctl reload nginx
 ```
 
-この時点ではまだ HTTPS 証明書が無いので、443 のリスナーはエラーになる。先に HTTP 側だけ有効にして certbot を走らせる手もあるが、`certbot --nginx` は不足を自動で補ってくれるのでそのまま実行する。
+同梱の `identfill.conf` / `s3.identfill.conf` は **`listen 443 ssl http2` と Let's Encrypt の `ssl_certificate` 行を有効化した状態**です。`/etc/letsencrypt/live/...` に該当証明書が無いと **`nginx -t` が失敗**します。既に certbot 済みのサーバではこのまま `nginx -t` → `reload` でよいです。**まだ証明書が無い初回**は、手順 7-2 の `certbot --nginx` を実行してから再度 `nginx -t` する（`ssl_dhparam` が無いと言われたら `sudo certbot renew --dry-run` や certbot の案内に従い `ssl-dhparams.pem` を生成する）。
 
 #### identfill.com の `/space`（RSS）と同居させる場合
 
 本番で **`https://identfill.com/space`** で RSS を出している場合のチェックリストです。
 
-1. **初回適用前に** [`deploy/nginx/identfill.conf`](../deploy/nginx/identfill.conf) を開き、`location ^~ /jugyobase/` の**直後**・`location /` の**直前**に、`/space` 用の `location` を追加する（ファイル内のコメント例 A: リバースプロキシ／例 B: 静的 `alias`）。`^~` を付けておくと、プレフィックスが `/space` のリクエストが誤って catch-all に落ちにくい。
+1. リポジトリ同梱の [`deploy/nginx/identfill.conf`](../deploy/nginx/identfill.conf) には **`/space` → `127.0.0.1:3101` の `location` が含まれる**。別ポートの場合は `3101` を書き換える。
 2. **`git pull` で上書きする**と手元で足した `/space` ブロックが消える可能性がある。運用では (a) リポジトリ側に `/space` 設定をコミットしておく、(b) もしくは `/etc/nginx/sites-available/identfill-local.conf` のような **include 用ファイル**に `/space` だけを書き、`identfill.conf` から `include` する、のどちらかにすると更新時の事故が減る。
 3. **certbot の `-d` リスト**は従来どおり `identfill.com` で足りる。`/space` はパスなので追加の SAN は不要（別サブドメインで RSS を出しているなら、そのホスト名を DNS と certbot に含める）。
 4. **jugyoBase の更新**（手順 10 の `sudo systemctl restart jugyobase`）は **`/space` の upstream には触れない**。RSS 側を別プロセスで動かしているなら、そのプロセスのデプロイ手順は別ドキュメントで管理する。
@@ -265,7 +272,7 @@ npx tsx scripts/create-tenant-user.ts \
   --name "デモ小学校" \
   --email you@example.com
 # ドメイン制限を付ける場合
-# npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --email you@school.jp --domain school.jp
+# npx tsx scripts/create-tenant-user.ts --slug morinan --name "守山南中学校" --email t1248103@ej-moriyama.ed.jp --domain ej-moriyama.ed.jp
 ```
 
 詳細は [`docs/TENANT_BOOTSTRAP.md`](TENANT_BOOTSTRAP.md)。
@@ -343,5 +350,6 @@ docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml
 | MinIO の署名検証エラー（`SignatureDoesNotMatch`）   | `MINIO_SERVER_URL` と `S3_ENDPOINT` が同じ値・かつ Nginx が `Host` を書き換えていないことを確認。`.env.production` 変更後は compose の `up -d` で MinIO を再起動。 |
 | Server Action で 500 / 大きいフォーム送信が落ちる    | `identfill.conf` の `client_max_body_size` を調整。`proxy_read_timeout` も。                                                            |
 | `prisma migrate deploy` が `permission denied`     | `DATABASE_URL` のパスワードや `POSTGRES_USER` が compose 側と一致しているか確認。                                                       |
-| `docker compose` で app が起動しない（DB 接続エラー） | `app` の `DATABASE_URL` は compose が組み立てる。`POSTGRES_PASSWORD` に `@` `:` `/` 等が含まれると URL が壊れるので、パスワードは英数字中心にするか URL エンコードを検討。 |
+| `docker compose` で app が起動しない（DB 接続エラー） | `.env.production` の **`DATABASE_URL_DOCKER`** のパスワードが URL エンコードされているか確認。 |
+| `/jugyobase` が 404、`/t/...` だけ 500（コンテナ内 curl） | 古い Docker イメージで basePath が Linux 上で壊れていることがある。**standalone イメージ**（本リポジトリの `Dockerfile`）で `build --no-cache` し直す。 |
 | `https://identfill.com/space/...` が **404**       | 同梱の `identfill.conf` では `location /` が `return 404` のため、`location ^~ /space/`（または静的 `alias`）を **`location /` より前**に追加したか確認。`nginx -t` 後に `systemctl reload nginx`。 |
