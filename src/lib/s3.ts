@@ -13,6 +13,9 @@ function getClient(): S3Client {
     region: process.env.S3_REGION!,
     endpoint: endpoint || undefined,
     forcePathStyle: Boolean(endpoint),
+    // ブラウザ直 PUT の presigned URL に CRC32 クエリが付くと MinIO が 403 になるため無効化
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: process.env.S3_ACCESS_KEY_ID!,
       secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
