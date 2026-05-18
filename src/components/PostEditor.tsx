@@ -11,6 +11,7 @@ import { AttachmentUploader } from "./AttachmentUploader";
 import {
   curriculumUnitMatchesSelection,
   GRADE_OPTIONS,
+  isCommonGradeOrSubjectSelection,
   SUBJECT_OPTIONS,
 } from "@/lib/subject-grade-options";
 
@@ -108,6 +109,7 @@ export function PostEditor(props: Props) {
   }, [filteredUnits]);
 
   const unitFieldsReady = Boolean(grade && subject);
+  const unitRequired = unitFieldsReady && !isCommonGradeOrSubjectSelection(grade, subject);
   const showUnitSelect = unitFieldsReady && unitInputMode === "select" && unitOptions.length > 0;
 
   return (
@@ -199,10 +201,17 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            単元 <span className="text-red-600">*</span>
+            単元{" "}
+            {unitRequired ? (
+              <span className="text-red-600">*</span>
+            ) : unitFieldsReady ? (
+              <span className="text-xs font-normal text-zinc-500">（任意）</span>
+            ) : null}
           </label>
           <p className="mt-1 text-xs text-zinc-500">
-            候補から選ぶか、候補にない場合は自由入力できます。学年・教科が「共通」の単元は、該当する組み合わせの候補にも表示されます。
+            {unitRequired
+              ? "候補から選ぶか、候補にない場合は自由入力できます。学年・教科が「共通」の単元は、該当する組み合わせの候補にも表示されます。"
+              : "学年または教科が「共通」の場合、単元の入力は任意です。"}
           </p>
           {!unitFieldsReady ? (
             <input
@@ -246,13 +255,13 @@ export function PostEditor(props: Props) {
               {showUnitSelect ? (
                 <select
                   name="unit"
-                  required
+                  required={unitRequired}
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
                 >
-                  <option value="" disabled>
-                    単元を選択してください
+                  <option value="" disabled={unitRequired}>
+                    {unitRequired ? "単元を選択してください" : "（未選択）"}
                   </option>
                   {unitOptions.map((v) => (
                     <option key={v} value={v}>
@@ -263,10 +272,10 @@ export function PostEditor(props: Props) {
               ) : (
                 <input
                   name="unit"
-                  required
+                  required={unitRequired}
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
-                  placeholder="単元を入力"
+                  placeholder={unitRequired ? "単元を入力" : "単元を入力（任意）"}
                   className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
                 />
               )}

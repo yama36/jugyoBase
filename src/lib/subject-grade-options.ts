@@ -26,6 +26,17 @@ export const SUBJECT_OPTIONS = [
   COMMON_GRADE_SUBJECT_LABEL,
 ] as const;
 
+/** 学年または教科に「共通」が選ばれているか */
+export function isCommonGradeOrSubjectSelection(
+  grade: string,
+  subject: string,
+): boolean {
+  return (
+    grade === COMMON_GRADE_SUBJECT_LABEL ||
+    subject === COMMON_GRADE_SUBJECT_LABEL
+  );
+}
+
 /** 単元マスタが投稿フォームの学年・教科選択と一致するか（「共通」はワイルドカード） */
 export function curriculumUnitMatchesSelection(
   selectedGrade: string,

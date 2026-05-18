@@ -24,20 +24,32 @@ import {
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { newPostShellDraftWhere } from "@/lib/post-shell-draft";
+import { isCommonGradeOrSubjectSelection } from "@/lib/subject-grade-options";
 
-const postFields = z.object({
-  tenantSlug: z.string().min(1),
-  title: z.string().max(200).optional().nullable(),
-  grade: z.string().min(1).max(80),
-  subject: z.string().min(1).max(80),
-  unit: z.string().min(1).max(500),
-  contentItem: z.string().max(500).optional().nullable(),
-  aim: z.string().max(5000).optional().nullable(),
-  reflection: z.string().max(20000).optional().nullable(),
-  point: z.string().max(20000).optional().nullable(),
-  flow: z.string().max(20000).optional().nullable(),
-  hashtagsRaw: z.string().max(2000).optional().nullable(),
-});
+const postFields = z
+  .object({
+    tenantSlug: z.string().min(1),
+    title: z.string().max(200).optional().nullable(),
+    grade: z.string().min(1).max(80),
+    subject: z.string().min(1).max(80),
+    unit: z.string().max(500),
+    contentItem: z.string().max(500).optional().nullable(),
+    aim: z.string().max(5000).optional().nullable(),
+    reflection: z.string().max(20000).optional().nullable(),
+    point: z.string().max(20000).optional().nullable(),
+    flow: z.string().max(20000).optional().nullable(),
+    hashtagsRaw: z.string().max(2000).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (isCommonGradeOrSubjectSelection(data.grade, data.subject)) return;
+    if (!data.unit.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "単元を入力してください",
+        path: ["unit"],
+      });
+    }
+  });
 
 export type PostSearchParams = {
   q?: string;
@@ -348,7 +360,7 @@ export async function createPost(
     title: formData.get("title") || null,
     grade: formData.get("grade"),
     subject: formData.get("subject"),
-    unit: formData.get("unit"),
+    unit: String(formData.get("unit") ?? ""),
     contentItem: formData.get("contentItem") || null,
     aim: formData.get("aim") || null,
     reflection: formData.get("reflection") || null,
@@ -364,7 +376,7 @@ export async function createPost(
     };
   }
 
-  const data = parsed.data;
+  const data = { ...parsed.data, unit: parsed.data.unit.trim() };
   if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
@@ -447,7 +459,7 @@ export async function updatePost(
     title: formData.get("title") || null,
     grade: formData.get("grade"),
     subject: formData.get("subject"),
-    unit: formData.get("unit"),
+    unit: String(formData.get("unit") ?? ""),
     contentItem: formData.get("contentItem") || null,
     aim: formData.get("aim") || null,
     reflection: formData.get("reflection") || null,
@@ -463,7 +475,7 @@ export async function updatePost(
     };
   }
 
-  const data = parsed.data;
+  const data = { ...parsed.data, unit: parsed.data.unit.trim() };
   if (!canAccessTenantRoute(session, data.tenantSlug)) {
     return { ok: false, message: "テナントが一致しません" };
   }
