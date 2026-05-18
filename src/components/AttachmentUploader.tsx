@@ -29,6 +29,62 @@ const UPLOAD_KIND_LABEL: Record<AttachmentKind, string> = {
   video: "動画",
 };
 
+type UploadFailure = { filename: string; message: string };
+
+async function uploadOneFile(
+  file: File,
+  tenantSlug: string,
+  postId: string,
+  extensionListHuman: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  let mimeType = (file.type || "").trim().toLowerCase();
+  if (!mimeType || mimeType === "application/octet-stream") {
+    mimeType = guessMimeFromFilename(file.name) ?? mimeType;
+  }
+  const kind = inferAttachmentKindFromMime(mimeType);
+  if (!kind || !isMimeAllowedForKind(kind, mimeType)) {
+    return {
+      ok: false,
+      message: `対応していない形式です（${extensionListHuman}）`,
+    };
+  }
+
+  const presign = await presignUploadForPost({
+    tenantSlug,
+    postId,
+    kind,
+    mimeType,
+    sizeBytes: file.size,
+    originalFilename: file.name,
+  });
+  if (!presign.ok) {
+    return { ok: false, message: presign.message };
+  }
+
+  const put = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    body: await file.arrayBuffer(),
+  });
+  if (!put.ok) {
+    return { ok: false, message: `アップロードに失敗しました (${put.status})` };
+  }
+
+  const reg = await registerAttachment({
+    tenantSlug,
+    postId,
+    kind,
+    mimeType,
+    sizeBytes: file.size,
+    originalFilename: file.name,
+    storageKey: presign.storageKey,
+  });
+  if (!reg.ok) {
+    return { ok: false, message: reg.message };
+  }
+
+  return { ok: true };
+}
+
 export function AttachmentUploader(props: {
   tenantSlug: string;
   postId: string;
@@ -37,71 +93,82 @@ export function AttachmentUploader(props: {
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
+  const [failures, setFailures] = useState<UploadFailure[]>([]);
 
   const extensionListHuman =
     ALLOWED_FILE_EXTENSIONS_FOR_INPUT.split(",").join("、");
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files;
     e.target.value = "";
-    if (!file) return;
+    if (!selected?.length) return;
+
+    const files = Array.from(selected);
     setBusy(true);
     setMessage(null);
+    setFailures([]);
+    setProgress({ current: 0, total: files.length });
+
+    const failed: UploadFailure[] = [];
+    let succeeded = 0;
+
     try {
-      let mimeType = (file.type || "").trim().toLowerCase();
-      if (!mimeType || mimeType === "application/octet-stream") {
-        mimeType = guessMimeFromFilename(file.name) ?? mimeType;
+      for (let i = 0; i < files.length; i++) {
+        setProgress({ current: i + 1, total: files.length });
+        const result = await uploadOneFile(
+          files[i],
+          props.tenantSlug,
+          props.postId,
+          extensionListHuman,
+        );
+        if (result.ok) {
+          succeeded++;
+        } else {
+          failed.push({ filename: files[i].name, message: result.message });
+        }
       }
-      const kind = inferAttachmentKindFromMime(mimeType);
-      if (!kind || !isMimeAllowedForKind(kind, mimeType)) {
+
+      setFailures(failed);
+
+      if (succeeded === 0) {
         setMessage(
-          `対応していないファイル形式です。次の拡張子のみアップロードできます：${extensionListHuman}`,
+          files.length === 1
+            ? failed[0]?.message ?? "添付に失敗しました"
+            : `${files.length} 件とも登録できませんでした`,
         );
         return;
       }
-      const presign = await presignUploadForPost({
-        tenantSlug: props.tenantSlug,
-        postId: props.postId,
-        kind,
-        mimeType,
-        sizeBytes: file.size,
-        originalFilename: file.name,
-      });
-      if (!presign.ok) {
-        setMessage(presign.message);
-        return;
+
+      const scanNote = props.malwareScanGate
+        ? "マルウェア検査完了後にダウンロードできます。"
+        : null;
+
+      if (failed.length === 0) {
+        setMessage(
+          succeeded === 1
+            ? scanNote
+              ? `添付を登録しました。${scanNote}`
+              : "添付を登録しました"
+            : scanNote
+              ? `${succeeded} 件の添付を登録しました。${scanNote}`
+              : `${succeeded} 件の添付を登録しました`,
+        );
+      } else {
+        setMessage(
+          scanNote
+            ? `${succeeded} 件を登録しました（${failed.length} 件は失敗）。${scanNote}`
+            : `${succeeded} 件を登録しました（${failed.length} 件は失敗）`,
+        );
       }
-      // File をそのまま渡すとブラウザが Content-Type を付け、host のみ署名の URL と MinIO が不整合で 403 になる
-      const put = await fetch(presign.uploadUrl, {
-        method: "PUT",
-        body: await file.arrayBuffer(),
-      });
-      if (!put.ok) {
-        setMessage(`アップロードに失敗しました (${put.status})`);
-        return;
-      }
-      const reg = await registerAttachment({
-        tenantSlug: props.tenantSlug,
-        postId: props.postId,
-        kind,
-        mimeType,
-        sizeBytes: file.size,
-        originalFilename: file.name,
-        storageKey: presign.storageKey,
-      });
-      if (!reg.ok) {
-        setMessage(reg.message);
-        return;
-      }
-      setMessage(
-        props.malwareScanGate
-          ? "添付を登録しました。マルウェア検査完了後にダウンロードできます。"
-          : "添付を登録しました",
-      );
+
       router.refresh();
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -143,7 +210,9 @@ export function AttachmentUploader(props: {
       <div className="space-y-1.5 text-xs text-zinc-600">
         <p>
           <span className="font-medium text-zinc-800">対応拡張子</span>
-          <span className="text-zinc-500">（種類はファイルから自動判定）</span>
+          <span className="text-zinc-500">
+            （PDF・画像・動画など混在して一度に選択できます。種類は自動判定）
+          </span>
         </p>
         <ul className="space-y-1 border-l-2 border-zinc-200 pl-3">
           {UPLOAD_KIND_ORDER.map((k) => (
@@ -180,18 +249,34 @@ export function AttachmentUploader(props: {
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          <span>ファイルを選択</span>
+          <span>{busy ? "アップロード中…" : "ファイルを選択"}</span>
           <input
             type="file"
+            multiple
             accept={ALLOWED_FILE_EXTENSIONS_FOR_INPUT}
             disabled={busy}
-            onChange={onFile}
+            onChange={onFiles}
             className="sr-only"
-            aria-label="添付ファイルをアップロード"
+            aria-label="添付ファイルをアップロード（複数選択可）"
           />
         </label>
+        {progress ? (
+          <p className="text-xs text-zinc-600" aria-live="polite">
+            {progress.current} / {progress.total} 件を処理中…
+          </p>
+        ) : null}
       </div>
       {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
+      {failures.length > 0 ? (
+        <ul className="space-y-1 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-900">
+          {failures.map((f, i) => (
+            <li key={`${f.filename}-${i}`}>
+              <span className="font-medium">{f.filename}</span>
+              <span className="text-red-800"> — {f.message}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
