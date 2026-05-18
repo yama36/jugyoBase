@@ -4,6 +4,7 @@ import type { AttachmentKind } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
 import { withBasePath } from "@/lib/app-base-path";
+import { PdfInlineViewer } from "./PdfInlineViewer";
 
 export function AttachmentViewer(props: {
   kind: AttachmentKind;
@@ -51,20 +52,11 @@ export function AttachmentViewer(props: {
 
   if (props.kind === "pdf") {
     return (
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <object
-          data={resolvedViewUrl}
-          type="application/pdf"
-          title={props.filename}
-          className="h-[min(80vh,900px)] w-full bg-zinc-100"
-        >
-          <iframe
-            title={props.filename}
-            src={resolvedViewUrl}
-            className="h-[min(80vh,900px)] w-full bg-zinc-100"
-          />
-        </object>
-      </div>
+      <PdfInlineViewer
+        streamUrl={resolvedViewUrl}
+        title={props.filename}
+        onError={() => setLoadError(true)}
+      />
     );
   }
 

@@ -875,6 +875,7 @@ export async function streamAttachmentObject(
       contentType: string;
       contentLength: number | undefined;
       filename: string;
+      kind: AttachmentKind;
     }
   | { ok: false; message: string; httpStatus?: number }
 > {
@@ -899,6 +900,7 @@ export async function streamAttachmentObject(
         access.row.kind,
       ),
       filename: access.row.originalFilename,
+      kind: access.row.kind,
     };
   } catch {
     return { ok: false, message: "ファイルの取得に失敗しました", httpStatus: 500 };

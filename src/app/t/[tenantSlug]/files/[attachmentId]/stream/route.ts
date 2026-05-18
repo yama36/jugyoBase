@@ -2,7 +2,14 @@ import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { streamAttachmentObject } from "@/app/actions/posts";
 
-function contentDispositionInline(filename: string): string {
+/** PDF 埋め込み時は filename 付きだとブラウザがダウンロード扱いにすることがある */
+function contentDispositionForStream(
+  kind: string,
+  filename: string,
+): string | undefined {
+  if (kind === "pdf") {
+    return "inline";
+  }
   const ascii = filename.replace(/[^\x20-\x7E]/g, "_") || "attachment";
   return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
@@ -25,11 +32,16 @@ export async function GET(
   }
 
   const webStream = Readable.toWeb(r.body) as ReadableStream<Uint8Array>;
+  const contentType =
+    r.kind === "pdf" ? "application/pdf" : r.contentType;
   const headers: Record<string, string> = {
-    "Content-Type": r.contentType,
-    "Content-Disposition": contentDispositionInline(r.filename),
+    "Content-Type": contentType,
     "Cache-Control": "private, no-store",
   };
+  const disposition = contentDispositionForStream(r.kind, r.filename);
+  if (disposition) {
+    headers["Content-Disposition"] = disposition;
+  }
   if (typeof r.contentLength === "number") {
     headers["Content-Length"] = String(r.contentLength);
   }
