@@ -193,8 +193,8 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run 
 # マイグレーションだけでは候補は空のまま。初回デプロイ時に一度実行する。
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npm run db:seed
 # 代替: 管理者でログイン後、/t/{tenantSlug}/admin/curriculum から単元を追加
-# seed で `spawn tsx ENOENT` が出る場合は app イメージが古い。手順 6 の build app をやり直す。
-# 再ビルド前の一時回避: … run --rm app sh -c "npm install tsx@4.21.0 --no-save && npm run db:seed"
+# seed で `spawn tsx ENOENT` が出る場合: `git pull` 後に `build app --no-cache`（runner 層が CACHED のまま古いことがある）。
+# 再ビルド前の一時回避: … run --rm app node --experimental-strip-types prisma/seed.ts
 
 # Postgres / MinIO / app をまとめて起動（既に DB だけ起動している場合も up で揃う）
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
@@ -362,3 +362,5 @@ docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml
 | `docker compose` で app が起動しない（DB 接続エラー） | `.env.production` の **`DATABASE_URL_DOCKER`** のパスワードが URL エンコードされているか確認。 |
 | `/jugyobase` が 404、`/t/...` だけ 500（コンテナ内 curl） | 古い Docker イメージで basePath が Linux 上で壊れていることがある。**standalone イメージ**（本リポジトリの `Dockerfile`）で `build --no-cache` し直す。 |
 | `https://identfill.com/space/...` が **404**       | 同梱の `identfill.conf` では `location /` が `return 404` のため、`location ^~ /space/`（または静的 `alias`）を **`location /` より前**に追加したか確認。`nginx -t` 後に `systemctl reload nginx`。 |
+| `git pull` で `dubious ownership`                | **`sudo` で `git pull` しない**。`sudo -iu jugyobase` してから `git pull`。必要なら `git config --global --add safe.directory /opt/jugyobase`（**jugyobase ユーザ**で実行。root の `--global` は使わない）。 |
+| `db:seed` で `spawn tsx ENOENT`                  | `git pull` 後 `build app --no-cache`。すぐ seed だけなら `… run --rm app node --experimental-strip-types prisma/seed.ts`。 |
