@@ -24,6 +24,7 @@ type Props =
       hashtagSuggestions: string[];
       /** `MALWARE_SCAN_WEBHOOK_SECRET` 設定時 true（サーバーから渡す） */
       malwareScanGate?: boolean;
+      storageConfigured?: boolean;
     }
   | {
       mode: "edit";
@@ -32,6 +33,7 @@ type Props =
       curriculumUnits: CurriculumUnitOption[];
       hashtagSuggestions: string[];
       malwareScanGate?: boolean;
+      storageConfigured?: boolean;
     };
 
 export function PostEditor(props: Props) {
@@ -108,6 +110,7 @@ export function PostEditor(props: Props) {
         <AttachmentUploader
           tenantSlug={tenantSlug}
           postId={postId}
+          storageConfigured={props.storageConfigured ?? true}
           malwareScanGate={props.malwareScanGate ?? false}
         />
       </section>

@@ -61,14 +61,14 @@ npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --ema
 `docker-compose.yml` の MinIO を起動したうえで:
 
 ```bash
-S3_BUCKET=jugyoBase
+S3_BUCKET=jugyobase
 S3_REGION=us-east-1
 S3_ACCESS_KEY_ID=minio
 S3_SECRET_ACCESS_KEY=minio12345678
 S3_ENDPOINT=http://127.0.0.1:9000
 ```
 
-バケット `jugyoBase` をコンソール（:9001）で作成してください。未設定でも投稿テキストは利用できます（添付のみ不可）。
+バケット `jugyobase`（**小文字のみ**。MinIO は大文字を含む名前を受け付けません）をコンソール（:9001）で作成するか、`docker exec jugyobase-minio-1 mc mb -p local/jugyobase` で作成してください。未設定でも投稿テキストは利用できます（添付のみ不可）。
 
 ### 6. 開発サーバー
 

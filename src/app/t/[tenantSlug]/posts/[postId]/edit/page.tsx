@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/posts";
 import { PostEditor } from "@/components/PostEditor";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
+import { isS3Configured } from "@/lib/storage";
 
 export default async function EditPostPage({
   params,
@@ -72,6 +73,7 @@ export default async function EditPostPage({
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}
         malwareScanGate={isMalwareScanGateEnabled()}
+        storageConfigured={isS3Configured()}
       />
     </div>
   );

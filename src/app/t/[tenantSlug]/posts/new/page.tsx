@@ -6,6 +6,7 @@ import {
 } from "@/app/actions/posts";
 import { auth } from "@/auth";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
+import { isS3Configured } from "@/lib/storage";
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
@@ -48,6 +49,7 @@ export default async function NewPostPage({
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}
         malwareScanGate={isMalwareScanGateEnabled()}
+        storageConfigured={isS3Configured()}
       />
     </div>
   );
