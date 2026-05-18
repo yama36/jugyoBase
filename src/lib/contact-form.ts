@@ -1,24 +1,24 @@
 /** yamalog 問い合わせ API（identFill 共通フォーム） */
+import { withBasePath } from "@/lib/app-base-path";
+
 export const CONTACT_FORM_APP_ID = 4;
 
 export const CONTACT_FORM_SOURCE = "jugyoBase";
 
-const DEFAULT_BASE = "https://yamalog.net/api/contactForm";
-
-function trimTrailingSlash(url: string): string {
-  return url.replace(/\/+$/, "");
-}
+/** ブラウザは同一オリジンの API ルート経由（CORS 回避）。上流はサーバー側プロキシが担当 */
+const DEFAULT_CONFIG_PATH = "/api/contact-form/config";
+const DEFAULT_SUBMIT_PATH = "/api/contact-form/inquiry";
 
 export function getContactFormSubmitUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_CONTACT_FORM_SUBMIT_URL?.trim();
   if (fromEnv) return fromEnv;
-  return `${trimTrailingSlash(DEFAULT_BASE)}/inquiry`;
+  return withBasePath(DEFAULT_SUBMIT_PATH);
 }
 
 export function getContactFormConfigUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_CONTACT_FORM_CONFIG_URL?.trim();
   if (fromEnv) return fromEnv;
-  return `${trimTrailingSlash(DEFAULT_BASE)}/config`;
+  return withBasePath(DEFAULT_CONFIG_PATH);
 }
 
 export type ContactFormConfigResponse = {
