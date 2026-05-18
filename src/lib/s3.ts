@@ -51,6 +51,26 @@ export async function presignGetObject(storageKey: string): Promise<string> {
   return getSignedUrl(client, get, { expiresIn: 60 * 10 });
 }
 
+export async function getObjectForStream(storageKey: string): Promise<{
+  body: import("stream").Readable;
+  contentType: string;
+  contentLength: number | undefined;
+}> {
+  const bucket = process.env.S3_BUCKET!;
+  const client = getClient();
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+  );
+  if (!response.Body) {
+    throw new Error("Empty S3 object body");
+  }
+  return {
+    body: response.Body as import("stream").Readable,
+    contentType: response.ContentType ?? "application/octet-stream",
+    contentLength: response.ContentLength,
+  };
+}
+
 export async function deleteObject(storageKey: string): Promise<void> {
   const client = getClient();
   await client.send(

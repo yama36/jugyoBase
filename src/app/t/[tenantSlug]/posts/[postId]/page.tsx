@@ -77,7 +77,7 @@ export default async function PostDetailPage({
           <li>
             <Link
               href={backHref}
-              className="rounded hover:text-zinc-800 hover:underline"
+              className="cursor-pointer rounded hover:text-zinc-800 hover:underline"
             >
               {backTopLabel}
             </Link>
@@ -118,7 +118,7 @@ export default async function PostDetailPage({
           />
           <Link
             href={`/t/${tenantSlug}/posts/${postId}/print`}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+            className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
             title="印刷・PDF保存"
           >
             PDF保存
@@ -127,7 +127,7 @@ export default async function PostDetailPage({
             <>
               <Link
                 href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
-                className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
               >
                 編集
               </Link>
@@ -220,28 +220,43 @@ export default async function PostDetailPage({
             {post.attachments.map((a) => {
               const downloadable = a.malwareScanStatus === "clean";
               const rowClass =
-                "flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition";
+                "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition";
               const pendingOrError =
                 a.malwareScanStatus === "pending" || a.malwareScanStatus === "error";
+              const viewHref = `/t/${tenantSlug}/posts/${postId}/attachments/${a.id}`;
+              const downloadHref = `/t/${tenantSlug}/files/${a.id}`;
               return (
                 <li key={a.id}>
                   {downloadable ? (
-                    <Link
-                      href={`/t/${tenantSlug}/files/${a.id}`}
-                      className={`${rowClass} border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50`}
-                    >
+                    <div className={`${rowClass} border-zinc-200 bg-white`}>
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
                           {a.kind}
                         </span>
-                        <span className="truncate text-sky-800">
+                        <span className="truncate font-medium text-zinc-900">
                           {a.originalFilename}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-zinc-500">
-                        {(a.sizeBytes / 1024).toFixed(1)} KiB
+                      <span className="flex shrink-0 flex-wrap items-center gap-3">
+                        <span className="text-xs text-zinc-500">
+                          {(a.sizeBytes / 1024).toFixed(1)} KiB
+                        </span>
+                        <span className="flex gap-2">
+                          <Link
+                            href={viewHref}
+                            className="cursor-pointer rounded-md bg-sky-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-sky-500"
+                          >
+                            表示
+                          </Link>
+                          <Link
+                            href={downloadHref}
+                            className="cursor-pointer rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                          >
+                            ダウンロード
+                          </Link>
+                        </span>
                       </span>
-                    </Link>
+                    </div>
                   ) : (
                     <div
                       className={`${rowClass} border-amber-200 bg-amber-50/60 text-zinc-700`}
@@ -316,7 +331,7 @@ export default async function PostDetailPage({
             <div className="ml-auto flex items-center gap-2">
               <Link
                 href={`/t/${tenantSlug}/posts/${postId}/print`}
-                className="shrink-0 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                className="shrink-0 cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
                 title="印刷・PDF保存"
               >
                 PDF
@@ -325,7 +340,7 @@ export default async function PostDetailPage({
                 <>
                   <Link
                     href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
-                    className="shrink-0 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                    className="shrink-0 cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
                   >
                     編集
                   </Link>

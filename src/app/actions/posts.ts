@@ -14,7 +14,12 @@ import {
   isS3Configured,
   maxBytesForKind,
 } from "@/lib/storage";
-import { deleteObject, presignGetObject, presignPutObject } from "@/lib/s3";
+import {
+  deleteObject,
+  getObjectForStream,
+  presignGetObject,
+  presignPutObject,
+} from "@/lib/s3";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { newPostShellDraftWhere } from "@/lib/post-shell-draft";
@@ -667,10 +672,26 @@ export type AttachmentDownloadUrlResult =
   | { ok: true; url: string }
   | { ok: false; message: string; httpStatus?: number };
 
-export async function getAttachmentDownloadUrl(
+type AttachmentWithPost = {
+  id: string;
+  postId: string;
+  kind: AttachmentKind;
+  mimeType: string;
+  originalFilename: string;
+  sizeBytes: number;
+  storageKey: string;
+  malwareScanStatus: string;
+  post: { tenantId: string; title: string | null };
+};
+
+type ResolveAttachmentAccessResult =
+  | { ok: true; row: AttachmentWithPost; tenantId: string }
+  | { ok: false; message: string; httpStatus?: number };
+
+async function resolveAttachmentAccess(
   tenantSlug: string,
   attachmentId: string,
-): Promise<AttachmentDownloadUrlResult> {
+): Promise<ResolveAttachmentAccessResult> {
   const session = await auth();
 
   let tenantId: string | null = null;
@@ -682,27 +703,27 @@ export async function getAttachmentDownloadUrl(
     tenantId = t?.id ?? null;
   } else {
     if (!session?.user?.tenantId || !canAccessTenantRoute(session, tenantSlug)) {
-      return { ok: false, message: "未ログインです" };
+      return { ok: false, message: "未ログインです", httpStatus: 401 };
     }
     tenantId = session.user.tenantId;
   }
 
   if (!tenantId) {
-    return { ok: false, message: "見つかりません" };
+    return { ok: false, message: "見つかりません", httpStatus: 404 };
   }
   if (!isS3Configured()) {
-    return { ok: false, message: "ファイルストレージが未設定です" };
+    return { ok: false, message: "ファイルストレージが未設定です", httpStatus: 503 };
   }
 
   const row = await withTenantRls(tenantId, (tx) =>
     tx.attachment.findUnique({
       where: { id: attachmentId },
-      include: { post: true },
+      include: { post: { select: { tenantId: true, title: true } } },
     }),
   );
 
   if (!row || row.post.tenantId !== tenantId) {
-    return { ok: false, message: "見つかりません" };
+    return { ok: false, message: "見つかりません", httpStatus: 404 };
   }
 
   if (row.malwareScanStatus === "pending") {
@@ -729,10 +750,123 @@ export async function getAttachmentDownloadUrl(
     };
   }
 
+  return { ok: true, row, tenantId };
+}
+
+export type AttachmentViewDataResult =
+  | {
+      ok: true;
+      attachment: {
+        id: string;
+        kind: AttachmentKind;
+        originalFilename: string;
+        mimeType: string;
+        sizeBytes: number;
+        viewUrl: string | null;
+      };
+      postTitle: string;
+    }
+  | { ok: false; message: string; httpStatus?: number };
+
+export async function getAttachmentViewData(
+  tenantSlug: string,
+  postId: string,
+  attachmentId: string,
+): Promise<AttachmentViewDataResult> {
+  const access = await resolveAttachmentAccess(tenantSlug, attachmentId);
+  if (!access.ok) {
+    return {
+      ok: false,
+      message: access.message,
+      httpStatus: access.httpStatus,
+    };
+  }
+
+  const { row } = access;
+  if (row.postId !== postId) {
+    return { ok: false, message: "見つかりません", httpStatus: 404 };
+  }
+
+  let viewUrl: string | null = null;
+  if (row.kind === "pdf") {
+    viewUrl = `/t/${tenantSlug}/files/${attachmentId}/stream`;
+  } else if (row.kind === "image" || row.kind === "video") {
+    try {
+      viewUrl = await presignGetObject(row.storageKey);
+    } catch {
+      return {
+        ok: false,
+        message: "表示用 URL の発行に失敗しました",
+        httpStatus: 500,
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    attachment: {
+      id: row.id,
+      kind: row.kind,
+      originalFilename: row.originalFilename,
+      mimeType: row.mimeType,
+      sizeBytes: row.sizeBytes,
+      viewUrl,
+    },
+    postTitle: row.post.title?.trim() || "（無題）",
+  };
+}
+
+export async function getAttachmentDownloadUrl(
+  tenantSlug: string,
+  attachmentId: string,
+): Promise<AttachmentDownloadUrlResult> {
+  const access = await resolveAttachmentAccess(tenantSlug, attachmentId);
+  if (!access.ok) {
+    return {
+      ok: false,
+      message: access.message,
+      httpStatus: access.httpStatus,
+    };
+  }
+
   try {
-    const url = await presignGetObject(row.storageKey);
+    const url = await presignGetObject(access.row.storageKey);
     return { ok: true, url };
   } catch {
     return { ok: false, message: "ダウンロード URL の発行に失敗しました" };
+  }
+}
+
+export async function streamAttachmentObject(
+  tenantSlug: string,
+  attachmentId: string,
+): Promise<
+  | {
+      ok: true;
+      body: import("stream").Readable;
+      contentType: string;
+      contentLength: number | undefined;
+      filename: string;
+    }
+  | { ok: false; message: string; httpStatus?: number }
+> {
+  const access = await resolveAttachmentAccess(tenantSlug, attachmentId);
+  if (!access.ok) {
+    return {
+      ok: false,
+      message: access.message,
+      httpStatus: access.httpStatus,
+    };
+  }
+
+  try {
+    const streamed = await getObjectForStream(access.row.storageKey);
+    return {
+      ok: true,
+      ...streamed,
+      filename: access.row.originalFilename,
+    };
+  } catch {
+    return { ok: false, message: "ファイルの取得に失敗しました", httpStatus: 500 };
   }
 }
