@@ -7,6 +7,7 @@ import {
   submitAddCurriculumUnitForm,
   submitToggleCurriculumUnitForm,
 } from "@/app/actions/admin";
+import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 
 const SCHOOL_TYPE_LABELS: Record<string, string> = {
   junior_high: "中学校",
@@ -80,13 +81,18 @@ export default async function AdminCurriculumPage({
           <input type="hidden" name="schoolType" value="junior_high" />
           <div>
             <label className="block text-xs font-medium text-zinc-600">教科 *</label>
-            <input
+            <select
               name="subject"
-              type="text"
               required
-              placeholder="数学"
-              className="mt-1 w-24 rounded border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none"
-            />
+              className="mt-1 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none"
+            >
+              <option value="">選択</option>
+              {SUBJECT_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-600">学年 *</label>
@@ -96,9 +102,11 @@ export default async function AdminCurriculumPage({
               className="mt-1 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none"
             >
               <option value="">選択</option>
-              <option value="1年">1年</option>
-              <option value="2年">2年</option>
-              <option value="3年">3年</option>
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
             </select>
           </div>
           <div>

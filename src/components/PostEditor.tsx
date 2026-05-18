@@ -8,7 +8,11 @@ import type { Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
 import { AttachmentUploader } from "./AttachmentUploader";
-import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import {
+  curriculumUnitMatchesSelection,
+  GRADE_OPTIONS,
+  SUBJECT_OPTIONS,
+} from "@/lib/subject-grade-options";
 
 type PostWithTags = (Post & { contentItem?: string | null }) & {
   tags: (PostTag & { tag: Tag })[];
@@ -83,7 +87,7 @@ export function PostEditor(props: Props) {
     const s = p?.subject ?? "";
     const u = p?.unit ?? "";
     const names = props.curriculumUnits
-      .filter((cu) => cu.grade === g && cu.subject === s)
+      .filter((cu) => curriculumUnitMatchesSelection(g, s, cu))
       .map((cu) => cu.name);
     if (names.length === 0) return "custom";
     if (u && !names.includes(u)) return "custom";
@@ -93,7 +97,9 @@ export function PostEditor(props: Props) {
   const postId = props.mode === "create" ? props.draftPostId : props.post.id;
 
   const filteredUnits = useMemo(() => {
-    return props.curriculumUnits.filter((u) => u.grade === grade && u.subject === subject);
+    return props.curriculumUnits.filter((u) =>
+      curriculumUnitMatchesSelection(grade, subject, u),
+    );
   }, [grade, props.curriculumUnits, subject]);
 
   const unitOptions = useMemo(() => {
@@ -196,7 +202,7 @@ export function PostEditor(props: Props) {
             単元 <span className="text-red-600">*</span>
           </label>
           <p className="mt-1 text-xs text-zinc-500">
-            候補から選ぶか、候補にない場合は自由入力できます。
+            候補から選ぶか、候補にない場合は自由入力できます。学年・教科が「共通」の単元は、該当する組み合わせの候補にも表示されます。
           </p>
           {!unitFieldsReady ? (
             <input
