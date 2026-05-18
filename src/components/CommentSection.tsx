@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { createComment, deleteComment } from "@/app/actions/comments";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Comment = {
   id: string;
@@ -34,6 +35,8 @@ export function CommentSection({
   >(null);
   const [commentPending, startComment] = useTransition();
   const [deletePending, startDeleteTransition] = useTransition();
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function handleCommentSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -50,12 +53,17 @@ export function CommentSection({
     });
   }
 
-  function handleDelete(commentId: string) {
-    if (!confirm("このコメントを削除しますか？")) return;
+  function handleDeleteConfirm() {
+    if (!deleteTargetId) return;
+    setDeleteError(null);
     startDeleteTransition(async () => {
-      const result = await deleteComment(tenantSlug, commentId);
-      if (!result.ok) alert(result.message);
-      else router.refresh();
+      const result = await deleteComment(tenantSlug, deleteTargetId);
+      if (!result.ok) {
+        setDeleteError(result.message);
+        return;
+      }
+      setDeleteTargetId(null);
+      router.refresh();
     });
   }
 
@@ -82,7 +90,11 @@ export function CommentSection({
                   </time>
                   {canDelete ? (
                     <button
-                      onClick={() => handleDelete(c.id)}
+                      type="button"
+                      onClick={() => {
+                        setDeleteError(null);
+                        setDeleteTargetId(c.id);
+                      }}
                       disabled={deletePending}
                       className="shrink-0 cursor-pointer text-xs text-zinc-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -141,6 +153,23 @@ export function CommentSection({
       ) : (
         <p className="text-xs text-zinc-400">閲覧専用アカウントはコメントできません</p>
       )}
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(next) => {
+          if (!deletePending && !next) {
+            setDeleteTargetId(null);
+            setDeleteError(null);
+          }
+        }}
+        title="このコメントを削除しますか？"
+        description="削除すると元に戻せません。"
+        error={deleteError}
+        confirmLabel="削除する"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+        pending={deletePending}
+      />
     </section>
   );
 }
