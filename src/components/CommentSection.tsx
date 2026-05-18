@@ -84,7 +84,7 @@ export function CommentSection({
                     <button
                       onClick={() => handleDelete(c.id)}
                       disabled={deletePending}
-                      className="shrink-0 text-xs text-zinc-400 hover:text-red-600 disabled:opacity-50"
+                      className="shrink-0 cursor-pointer text-xs text-zinc-400 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       削除
                     </button>
@@ -123,7 +123,7 @@ export function CommentSection({
           <button
             type="submit"
             disabled={commentPending}
-            className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className="cursor-pointer rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {commentPending ? "送信中…" : "コメントする"}
           </button>

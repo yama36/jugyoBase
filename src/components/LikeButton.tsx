@@ -40,7 +40,7 @@ export function LikeButton({
         liked
           ? "border-rose-300 bg-rose-50 text-rose-700"
           : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",
-        (!canLike || isPending) ? "cursor-not-allowed opacity-50" : "",
+        !canLike || isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       ]
         .filter(Boolean)
         .join(" ")}

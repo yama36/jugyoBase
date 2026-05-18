@@ -36,7 +36,7 @@ export function BookmarkButton({
         bookmarked
           ? "border-amber-300 bg-amber-50 text-amber-700"
           : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",
-        isPending ? "cursor-not-allowed opacity-50" : "",
+        disabled || isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       ]
         .filter(Boolean)
         .join(" ")}

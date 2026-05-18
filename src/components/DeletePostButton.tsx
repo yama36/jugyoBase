@@ -27,7 +27,7 @@ export function DeletePostButton(props: {
           router.refresh();
         });
       }}
-      className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-800 hover:bg-red-100 disabled:opacity-50"
+      className="cursor-pointer rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-800 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
     >
       削除
     </button>
