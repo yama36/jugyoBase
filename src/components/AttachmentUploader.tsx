@@ -8,6 +8,14 @@ import {
   registerAttachment,
 } from "@/app/actions/posts";
 import {
+  compressImageForUpload,
+  shouldCompressImage,
+} from "@/lib/compress-image";
+import {
+  compressVideoForUpload,
+  shouldCompressVideo,
+} from "@/lib/compress-video";
+import {
   ALLOWED_EXTENSIONS_BY_KIND,
   ALLOWED_FILE_EXTENSIONS_FOR_INPUT,
   guessMimeFromFilename,
@@ -49,6 +57,7 @@ async function uploadOneFile(
   tenantSlug: string,
   postId: string,
   extensionListHuman: string,
+  onPhase: (label: string | null) => void,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   let mimeType = (file.type || "").trim().toLowerCase();
   if (!mimeType || mimeType === "application/octet-stream") {
@@ -62,13 +71,49 @@ async function uploadOneFile(
     };
   }
 
+  let uploadFile = file;
+  if (kind === "image" && shouldCompressImage(file, mimeType)) {
+    onPhase("画像を圧縮しています…");
+    try {
+      uploadFile = await compressImageForUpload(file, mimeType);
+      mimeType = (uploadFile.type || mimeType).trim().toLowerCase();
+    } catch {
+      return {
+        ok: false,
+        message: "画像の圧縮に失敗しました。別の画像をお試しください。",
+      };
+    } finally {
+      onPhase(null);
+    }
+  }
+
+  if (kind === "video" && shouldCompressVideo(file)) {
+    onPhase("動画を圧縮しています…（初回はエンジンの読み込みに時間がかかります）");
+    try {
+      uploadFile = await compressVideoForUpload(file, (ratio) => {
+        onPhase(
+          `動画を圧縮しています… ${Math.min(99, Math.round(ratio * 100))}%`,
+        );
+      });
+      mimeType = "video/mp4";
+    } catch {
+      return {
+        ok: false,
+        message:
+          "動画の圧縮に失敗しました。短いクリップにするか、別の形式（mp4 など）をお試しください。",
+      };
+    } finally {
+      onPhase(null);
+    }
+  }
+
   const presign = await presignUploadForPost({
     tenantSlug,
     postId,
     kind,
     mimeType,
-    sizeBytes: file.size,
-    originalFilename: file.name,
+    sizeBytes: uploadFile.size,
+    originalFilename: uploadFile.name,
   });
   if (!presign.ok) {
     return { ok: false, message: presign.message };
@@ -76,7 +121,7 @@ async function uploadOneFile(
 
   const put = await fetch(presign.uploadUrl, {
     method: "PUT",
-    body: await file.arrayBuffer(),
+    body: await uploadFile.arrayBuffer(),
   });
   if (!put.ok) {
     const body = await put.text().catch(() => "");
@@ -92,8 +137,8 @@ async function uploadOneFile(
     postId,
     kind,
     mimeType,
-    sizeBytes: file.size,
-    originalFilename: file.name,
+    sizeBytes: uploadFile.size,
+    originalFilename: uploadFile.name,
     storageKey: presign.storageKey,
   });
   if (!reg.ok) {
@@ -117,6 +162,7 @@ export function AttachmentUploader(props: {
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(
     null,
   );
+  const [phase, setPhase] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [failures, setFailures] = useState<UploadFailure[]>([]);
 
@@ -136,6 +182,7 @@ export function AttachmentUploader(props: {
     setMessage(null);
     setFailures([]);
     setProgress({ current: 0, total: files.length });
+    setPhase(null);
 
     const failed: UploadFailure[] = [];
     let succeeded = 0;
@@ -148,6 +195,7 @@ export function AttachmentUploader(props: {
           props.tenantSlug,
           props.postId,
           extensionListHuman,
+          setPhase,
         );
         if (result.ok) {
           succeeded++;
@@ -193,6 +241,7 @@ export function AttachmentUploader(props: {
     } finally {
       setBusy(false);
       setProgress(null);
+      setPhase(null);
     }
   }
 
@@ -257,7 +306,8 @@ export function AttachmentUploader(props: {
           ))}
         </ul>
         <p className="pt-0.5 text-zinc-500">
-          PDF・スライド・画像は 25 MB まで、動画は 200 MB までです。
+          PDF・スライド・画像は 25 MB まで、動画は 200 MB までです。500 KB を超える画像（GIF
+          除く）は最大 2048px に圧縮します。5 MB を超える動画は最大 1280×720 の MP4 に圧縮します。
         </p>
       </div>
 
@@ -298,7 +348,8 @@ export function AttachmentUploader(props: {
         </label>
         {progress ? (
           <p className="text-xs text-zinc-600" aria-live="polite">
-            {progress.current} / {progress.total} 件を処理中…
+            {phase ??
+              `${progress.current} / ${progress.total} 件を処理中…`}
           </p>
         ) : null}
       </div>

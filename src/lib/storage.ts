@@ -6,6 +6,26 @@ export const STORAGE_LIMITS = {
   videoMaxBytes: 200 * 1024 * 1024, // 200 MB（MVP: ブラウザ再生しやすい mp4 等を想定）
 } as const;
 
+/** ブラウザ上での画像圧縮 */
+export const IMAGE_COMPRESS = {
+  /** これ未満の画像は圧縮しない */
+  minBytesToCompress: 500 * 1024,
+  maxWidthOrHeight: 2048,
+  initialQuality: 0.85,
+  /** アニメーションを壊すため圧縮対象外 */
+  skipMimeTypes: ["image/gif"] as const,
+} as const;
+
+/** ブラウザ上での動画圧縮（ffmpeg.wasm） */
+export const VIDEO_COMPRESS = {
+  /** これ未満の動画は再エンコードしない（小さいほうが速い） */
+  minBytesToCompress: 5 * 1024 * 1024,
+  maxWidth: 1280,
+  maxHeight: 720,
+  /** libx264 CRF（大きいほど小さく・画質低下） */
+  crf: 28,
+} as const;
+
 export const ALLOWED_MIME_BY_KIND: Record<
   AttachmentKind,
   readonly string[]
