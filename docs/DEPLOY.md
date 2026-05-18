@@ -193,6 +193,8 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run 
 # マイグレーションだけでは候補は空のまま。初回デプロイ時に一度実行する。
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npm run db:seed
 # 代替: 管理者でログイン後、/t/{tenantSlug}/admin/curriculum から単元を追加
+# seed で `spawn tsx ENOENT` が出る場合は app イメージが古い。手順 6 の build app をやり直す。
+# 再ビルド前の一時回避: … run --rm app sh -c "npm install tsx@4.21.0 --no-save && npm run db:seed"
 
 # Postgres / MinIO / app をまとめて起動（既に DB だけ起動している場合も up で揃う）
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
@@ -310,6 +312,7 @@ git pull
 # 本番のみ存在する /space 用の location が消えることがある。差分を確認してから reload する。
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production build app
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
+# 単元マスタ未投入なら（初回のみ）: … run --rm app npm run db:seed
 exit
 sudo systemctl restart jugyobase
 # 上記は compose を stop してから up -d し直す。DB/MinIO も一度止まるが数秒で復帰する。

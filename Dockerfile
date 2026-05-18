@@ -42,7 +42,8 @@ COPY --from=builder /app/.next/static ./.next/static
 # `docker compose run --rm app npx prisma migrate deploy` 用
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm install prisma@6.19.3 --no-save \
+# migrate deploy / db:seed（tsx prisma/seed.ts）用
+RUN npm install prisma@6.19.3 tsx@4.21.0 --no-save \
   && npx prisma generate
 
 EXPOSE 3000
