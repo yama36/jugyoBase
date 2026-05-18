@@ -1,9 +1,11 @@
 "use client";
 
-import type { AttachmentKind } from "@prisma/client";
+import type { AttachmentKind, AttachmentMalwareScanStatus } from "@prisma/client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  deleteAttachment,
   presignUploadForPost,
   registerAttachment,
 } from "@/app/actions/posts";
@@ -38,6 +40,14 @@ const UPLOAD_KIND_LABEL: Record<AttachmentKind, string> = {
 };
 
 type UploadFailure = { filename: string; message: string };
+
+export type AttachmentListItem = {
+  id: string;
+  kind: AttachmentKind;
+  originalFilename: string;
+  sizeBytes: number;
+  malwareScanStatus: AttachmentMalwareScanStatus;
+};
 
 /** MinIO / S3 の XML エラーから Code を抜き出す（403 診断用） */
 function s3ErrorHint(status: number, body: string): string {
@@ -151,6 +161,7 @@ async function uploadOneFile(
 export function AttachmentUploader(props: {
   tenantSlug: string;
   postId: string;
+  initialAttachments?: AttachmentListItem[];
   /** false のときアップロード不可（サーバーで isS3Configured() を渡す） */
   storageConfigured?: boolean;
   /** マルウェア検査ゲート有効時、登録直後はダウンロード不可である旨を表示 */
@@ -158,13 +169,21 @@ export function AttachmentUploader(props: {
 }) {
   const storageReady = props.storageConfigured !== false;
   const router = useRouter();
+  const [attachments, setAttachments] = useState<AttachmentListItem[]>(
+    () => props.initialAttachments ?? [],
+  );
   const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(
     null,
   );
   const [phase, setPhase] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [failures, setFailures] = useState<UploadFailure[]>([]);
+
+  useEffect(() => {
+    setAttachments(props.initialAttachments ?? []);
+  }, [props.initialAttachments]);
 
   const extensionListHuman =
     ALLOWED_FILE_EXTENSIONS_FOR_INPUT.split(",").join("、");
@@ -245,6 +264,34 @@ export function AttachmentUploader(props: {
     }
   }
 
+  async function onDelete(attachmentId: string, filename: string) {
+    if (
+      !window.confirm(
+        `「${filename}」を削除しますか？\nこの操作は取り消せません。`,
+      )
+    ) {
+      return;
+    }
+    setDeletingId(attachmentId);
+    setMessage(null);
+    try {
+      const result = await deleteAttachment({
+        tenantSlug: props.tenantSlug,
+        postId: props.postId,
+        attachmentId,
+      });
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      setMessage("添付を削除しました");
+      router.refresh();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-zinc-800">添付ファイル</h3>
@@ -262,6 +309,93 @@ export function AttachmentUploader(props: {
           <strong className="font-semibold">検査が終わるまでダウンロードできません</strong>
           （一覧のサムネイルも検査完了後に表示されます）。
         </p>
+      ) : null}
+
+      {attachments.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-zinc-700">
+            登録済みの添付（{attachments.length} 件）
+          </p>
+          <ul className="space-y-2">
+            {attachments.map((a) => {
+              const downloadable = a.malwareScanStatus === "clean";
+              const viewHref = `/t/${props.tenantSlug}/posts/${props.postId}/attachments/${a.id}`;
+              const downloadHref = `/t/${props.tenantSlug}/files/${a.id}`;
+              const rowClass =
+                "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm";
+              const isDeleting = deletingId === a.id;
+
+              return (
+                <li key={a.id}>
+                  <div
+                    className={`${rowClass} ${
+                      downloadable
+                        ? "border-zinc-200 bg-white"
+                        : "border-amber-200 bg-amber-50/60"
+                    }`}
+                  >
+                    <span className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                          {UPLOAD_KIND_LABEL[a.kind] ?? a.kind}
+                        </span>
+                        <span className="truncate font-medium text-zinc-900">
+                          {a.originalFilename}
+                        </span>
+                      </span>
+                      {a.malwareScanStatus === "pending" ? (
+                        <span className="text-xs text-amber-800">
+                          マルウェア検査中（ダウンロードは検査完了後）
+                        </span>
+                      ) : null}
+                      {a.malwareScanStatus === "error" ? (
+                        <span className="text-xs text-red-800">
+                          検査エラー（ダウンロード不可）
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="flex shrink-0 flex-wrap items-center gap-2">
+                      <span className="text-xs text-zinc-500">
+                        {(a.sizeBytes / 1024).toFixed(1)} KiB
+                      </span>
+                      {downloadable ? (
+                        <Link
+                          href={viewHref}
+                          className="rounded-md bg-sky-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-sky-500"
+                        >
+                          表示
+                        </Link>
+                      ) : (
+                        <Link
+                          href={viewHref}
+                          className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                        >
+                          確認
+                        </Link>
+                      )}
+                      {downloadable ? (
+                        <Link
+                          href={downloadHref}
+                          className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                        >
+                          ダウンロード
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        disabled={busy || isDeleting}
+                        onClick={() => onDelete(a.id, a.originalFilename)}
+                        className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isDeleting ? "削除中…" : "削除"}
+                      </button>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ) : null}
 
       <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-3 py-3">

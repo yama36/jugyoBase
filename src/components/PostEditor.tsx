@@ -4,10 +4,13 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updatePost } from "@/app/actions/posts";
-import type { Post, PostTag, Tag } from "@prisma/client";
+import type { Attachment, Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
-import { AttachmentUploader } from "./AttachmentUploader";
+import {
+  AttachmentUploader,
+  type AttachmentListItem,
+} from "./AttachmentUploader";
 import {
   curriculumUnitMatchesSelection,
   GRADE_OPTIONS,
@@ -17,6 +20,7 @@ import {
 
 type PostWithTags = (Post & { contentItem?: string | null }) & {
   tags: (PostTag & { tag: Tag })[];
+  attachments: Attachment[];
 };
 
 type Props =
@@ -30,6 +34,7 @@ type Props =
       /** `MALWARE_SCAN_WEBHOOK_SECRET` 設定時 true（サーバーから渡す） */
       malwareScanGate?: boolean;
       storageConfigured?: boolean;
+      initialAttachments?: AttachmentListItem[];
     }
   | {
       mode: "edit";
@@ -97,6 +102,17 @@ export function PostEditor(props: Props) {
 
   const postId = props.mode === "create" ? props.draftPostId : props.post.id;
 
+  const initialAttachments: AttachmentListItem[] =
+    props.mode === "edit"
+      ? props.post.attachments.map((a) => ({
+          id: a.id,
+          kind: a.kind,
+          originalFilename: a.originalFilename,
+          sizeBytes: a.sizeBytes,
+          malwareScanStatus: a.malwareScanStatus,
+        }))
+      : (props.initialAttachments ?? []);
+
   const filteredUnits = useMemo(() => {
     return props.curriculumUnits.filter((u) =>
       curriculumUnitMatchesSelection(grade, subject, u),
@@ -118,6 +134,7 @@ export function PostEditor(props: Props) {
         <AttachmentUploader
           tenantSlug={tenantSlug}
           postId={postId}
+          initialAttachments={initialAttachments}
           storageConfigured={props.storageConfigured ?? true}
           malwareScanGate={props.malwareScanGate ?? false}
         />

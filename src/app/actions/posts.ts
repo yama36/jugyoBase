@@ -681,6 +681,52 @@ export async function registerAttachment(input: {
   }
 }
 
+export async function deleteAttachment(input: {
+  tenantSlug: string;
+  postId: string;
+  attachmentId: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const session = await auth();
+  if (!session?.user?.tenantId || !canAccessTenantRoute(session, input.tenantSlug)) {
+    return { ok: false, message: "未ログインです" };
+  }
+
+  const tenantId = session.user.tenantId;
+  const post = await getPost(tenantId, input.postId);
+  if (
+    !post ||
+    (post.authorId !== session.user.id && session.user.role !== "admin")
+  ) {
+    return { ok: false, message: "削除する権限がありません" };
+  }
+
+  const attachment = post.attachments.find((a) => a.id === input.attachmentId);
+  if (!attachment) {
+    return { ok: false, message: "添付が見つかりません" };
+  }
+
+  if (isS3Configured()) {
+    try {
+      await deleteObject(attachment.storageKey);
+    } catch {
+      // DB 削除は続行（孤立オブジェクトは運用で掃除）
+    }
+  }
+
+  try {
+    await withTenantRls(tenantId, (tx) =>
+      tx.attachment.delete({ where: { id: input.attachmentId } }),
+    );
+    revalidatePath(`/t/${input.tenantSlug}/posts/${input.postId}`);
+    revalidatePath(`/t/${input.tenantSlug}/posts/${input.postId}/edit`);
+    revalidatePath(`/t/${input.tenantSlug}/posts/new`);
+    revalidatePath(`/t/${input.tenantSlug}/mypage`);
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "削除に失敗しました" };
+  }
+}
+
 export type AttachmentDownloadUrlResult =
   | { ok: true; url: string }
   | { ok: false; message: string; httpStatus?: number };

@@ -1,6 +1,7 @@
 import { PostEditor } from "@/components/PostEditor";
 import {
   createShellDraftPost,
+  getPost,
   listCurriculumUnitOptions,
   listPostSearchOptions,
 } from "@/app/actions/posts";
@@ -32,10 +33,20 @@ export default async function NewPostPage({
     );
   }
 
-  const [curriculumUnits, searchOptions] = await Promise.all([
+  const [curriculumUnits, searchOptions, draftPost] = await Promise.all([
     listCurriculumUnitOptions(),
     listPostSearchOptions(session.user.tenantId),
+    getPost(session.user.tenantId, draft.postId),
   ]);
+
+  const initialAttachments =
+    draftPost?.attachments.map((a) => ({
+      id: a.id,
+      kind: a.kind,
+      originalFilename: a.originalFilename,
+      sizeBytes: a.sizeBytes,
+      malwareScanStatus: a.malwareScanStatus,
+    })) ?? [];
 
   return (
     <div className="space-y-6">
@@ -46,6 +57,7 @@ export default async function NewPostPage({
         mode="create"
         tenantSlug={tenantSlug}
         draftPostId={draft.postId}
+        initialAttachments={initialAttachments}
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}
         malwareScanGate={isMalwareScanGateEnabled()}
