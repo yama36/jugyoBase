@@ -111,3 +111,27 @@ export function isS3Configured(): boolean {
       process.env.S3_SECRET_ACCESS_KEY,
   );
 }
+
+/** ブラウザ PUT 時に S3 へ Content-Type を付けないため、取得時は DB の MIME を優先する */
+export function resolveAttachmentContentType(
+  s3ContentType: string | undefined,
+  mimeType: string,
+  kind: AttachmentKind,
+): string {
+  const fromS3 = (s3ContentType ?? "").trim().toLowerCase();
+  if (fromS3 && fromS3 !== "application/octet-stream") {
+    return fromS3;
+  }
+  const fromDb = mimeType.trim().toLowerCase();
+  if (fromDb && fromDb !== "application/octet-stream") {
+    return fromDb;
+  }
+  const fallbacks: Record<AttachmentKind, string> = {
+    pdf: "application/pdf",
+    slide:
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    image: "image/jpeg",
+    video: "video/mp4",
+  };
+  return fallbacks[kind];
+}

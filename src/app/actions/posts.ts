@@ -13,6 +13,7 @@ import {
   isMimeAllowedForKind,
   isS3Configured,
   maxBytesForKind,
+  resolveAttachmentContentType,
 } from "@/lib/storage";
 import {
   deleteObject,
@@ -753,6 +754,12 @@ async function resolveAttachmentAccess(
   return { ok: true, row, tenantId };
 }
 
+export type AttachmentSiblingRef = {
+  id: string;
+  originalFilename: string;
+  kind: AttachmentKind;
+};
+
 export type AttachmentViewDataResult =
   | {
       ok: true;
@@ -765,6 +772,11 @@ export type AttachmentViewDataResult =
         viewUrl: string | null;
       };
       postTitle: string;
+      /** 同一投稿内で表示可能な添付（検査済み・昇順） */
+      siblings: {
+        items: AttachmentSiblingRef[];
+        currentIndex: number;
+      };
     }
   | { ok: false; message: string; httpStatus?: number };
 
@@ -782,7 +794,7 @@ export async function getAttachmentViewData(
     };
   }
 
-  const { row } = access;
+  const { row, tenantId } = access;
   if (row.postId !== postId) {
     return { ok: false, message: "見つかりません", httpStatus: 404 };
   }
@@ -802,6 +814,18 @@ export async function getAttachmentViewData(
     }
   }
 
+  const siblingRows = await withTenantRls(tenantId, (tx) =>
+    tx.attachment.findMany({
+      where: { postId, malwareScanStatus: "clean" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, originalFilename: true, kind: true },
+    }),
+  );
+  const currentIndex = siblingRows.findIndex((a) => a.id === attachmentId);
+  if (currentIndex < 0) {
+    return { ok: false, message: "見つかりません", httpStatus: 404 };
+  }
+
   return {
     ok: true,
     attachment: {
@@ -813,6 +837,10 @@ export async function getAttachmentViewData(
       viewUrl,
     },
     postTitle: row.post.title?.trim() || "（無題）",
+    siblings: {
+      items: siblingRows,
+      currentIndex,
+    },
   };
 }
 
@@ -863,7 +891,13 @@ export async function streamAttachmentObject(
     const streamed = await getObjectForStream(access.row.storageKey);
     return {
       ok: true,
-      ...streamed,
+      body: streamed.body,
+      contentLength: streamed.contentLength,
+      contentType: resolveAttachmentContentType(
+        streamed.contentType,
+        access.row.mimeType,
+        access.row.kind,
+      ),
       filename: access.row.originalFilename,
     };
   } catch {

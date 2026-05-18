@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAttachmentViewData } from "@/app/actions/posts";
+import { AttachmentSiblingNav } from "@/components/AttachmentSiblingNav";
 import { AttachmentViewer } from "@/components/AttachmentViewer";
 import { isS3Configured } from "@/lib/storage";
 
@@ -48,7 +49,7 @@ export default async function AttachmentViewPage({
     );
   }
 
-  const { attachment, postTitle } = data;
+  const { attachment, postTitle, siblings } = data;
   const postHref = `/t/${tenantSlug}/posts/${postId}`;
   const downloadHref = `/t/${tenantSlug}/files/${attachmentId}`;
 
@@ -100,6 +101,13 @@ export default async function AttachmentViewPage({
           </Link>
         </div>
       </header>
+
+      <AttachmentSiblingNav
+        tenantSlug={tenantSlug}
+        postId={postId}
+        siblings={siblings.items}
+        currentIndex={siblings.currentIndex}
+      />
 
       <AttachmentViewer
         kind={attachment.kind}
