@@ -204,7 +204,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     title: "連立方程式：買い物の場面で式を立てる",
     thumb: "PDF",
     date: "2026/05/10",
-    grade: "中2",
+    grade: "2年",
     subject: "数学",
     unit: "連立方程式",
     tags: ["協同学習", "ICT"],
@@ -215,7 +215,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     title: "走れメロスを「友情」の視点で読み直す",
     thumb: "JPG",
     date: "2026/05/08",
-    grade: "中2",
+    grade: "2年",
     subject: "国語",
     unit: "走れメロス",
     tags: ["読解", "対話"],
@@ -282,7 +282,7 @@ function PostFormMock() {
             </li>
           </ul>
           <p className="pt-0.5 text-zinc-500">
-            PDF・スライド・画像は 25 MB まで、動画は 200 MB までです。
+            PDF・スライド・画像は 25 MB まで、動画は 200 MB までです。混在して複数選択できます。
           </p>
         </div>
 
@@ -300,10 +300,23 @@ function PostFormMock() {
           value="連立方程式：買い物の場面で式を立てる"
         />
         <div className="grid grid-cols-2 gap-2">
-          <Field label="学年" required value="中2" select />
+          <Field label="学年" required value="2年" select />
           <Field label="教科" required value="数学" select />
         </div>
-        <Field label="単元" required value="連立方程式" />
+        <div>
+          <p className="text-[11px] font-medium text-zinc-700">
+            単元<span className="ml-0.5 text-red-600">*</span>
+          </p>
+          <div className="mt-1 flex gap-3 text-[10px] text-zinc-600">
+            <span className="font-medium text-sky-700">候補から選ぶ</span>
+            <span>自由入力</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2 rounded border border-zinc-300 bg-white px-2 py-1.5 text-[11px] text-zinc-800">
+            <span className="truncate">連立方程式</span>
+            <span className="text-zinc-400">▾</span>
+          </div>
+        </div>
+        <Field label="内容項目（任意）" value="連立方程式の意味" />
         <FieldArea
           label="めあて"
           value="連立方程式を使って、買い物の問題を自分で解けるようになる。"
@@ -511,7 +524,7 @@ function MyPageMock() {
             <span className="text-[10px] text-zinc-400">2026/05/10</span>
           </div>
           <p className="mt-1 text-[10px] text-zinc-600">
-            中2 / 数学 / 連立方程式
+            2年 / 数学 / 連立方程式
           </p>
           <p className="mt-1 text-[10px] text-sky-700">#協同学習 #ICT</p>
         </div>
@@ -532,7 +545,7 @@ function MyPageMock() {
             <span className="text-[10px] text-zinc-400">2026/05/08</span>
           </div>
           <p className="mt-1 text-[10px] text-zinc-600">
-            中2 / 国語 / 走れメロス
+            2年 / 国語 / 走れメロス
           </p>
         </div>
       </div>
