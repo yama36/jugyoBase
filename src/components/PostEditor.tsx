@@ -76,6 +76,17 @@ export function PostEditor(props: Props) {
   const [subject, setSubject] = useState<string>(p?.subject ?? "");
   const [unit, setUnit] = useState<string>(p?.unit ?? "");
   const [contentItem, setContentItem] = useState<string>(p?.contentItem?.trim() ?? "");
+  const [unitInputMode, setUnitInputMode] = useState<"select" | "custom">(() => {
+    const g = p?.grade ?? "";
+    const s = p?.subject ?? "";
+    const u = p?.unit ?? "";
+    const names = props.curriculumUnits
+      .filter((cu) => cu.grade === g && cu.subject === s)
+      .map((cu) => cu.name);
+    if (names.length === 0) return "custom";
+    if (u && !names.includes(u)) return "custom";
+    return "select";
+  });
 
   const postId = props.mode === "create" ? props.draftPostId : props.post.id;
 
@@ -85,9 +96,11 @@ export function PostEditor(props: Props) {
 
   const unitOptions = useMemo(() => {
     const unique = new Set(filteredUnits.map((u) => u.name));
-    if (p?.unit) unique.add(p.unit);
     return Array.from(unique);
-  }, [filteredUnits, p]);
+  }, [filteredUnits]);
+
+  const unitFieldsReady = Boolean(grade && subject);
+  const showUnitSelect = unitFieldsReady && unitInputMode === "select" && unitOptions.length > 0;
 
   return (
     <div className="space-y-6">
@@ -131,7 +144,11 @@ export function PostEditor(props: Props) {
               name="grade"
               required
               value={grade}
-              onChange={(e) => setGrade(e.target.value)}
+              onChange={(e) => {
+                setGrade(e.target.value);
+                setUnit("");
+                setUnitInputMode("select");
+              }}
               className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
             >
               <option value="" disabled>
@@ -152,7 +169,11 @@ export function PostEditor(props: Props) {
               name="subject"
               required
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setUnit("");
+                setUnitInputMode("select");
+              }}
               className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
             >
               <option value="" disabled>
@@ -172,23 +193,76 @@ export function PostEditor(props: Props) {
             単元 <span className="text-red-600">*</span>
           </label>
           <p className="mt-1 text-xs text-zinc-500">
-            候補から選ぶか、候補にない場合はそのまま入力できます。
+            候補から選ぶか、候補にない場合は自由入力できます。
           </p>
-          <input
-            name="unit"
-            required
-            list="unit-suggestions"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            disabled={!grade || !subject}
-            placeholder={!grade || !subject ? "先に学年と教科を選択してください" : "単元を入力"}
-            className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-zinc-100"
-          />
-          <datalist id="unit-suggestions">
-            {unitOptions.map((v) => (
-              <option key={v} value={v} />
-            ))}
-          </datalist>
+          {!unitFieldsReady ? (
+            <input
+              disabled
+              placeholder="先に学年と教科を選択してください"
+              className="mt-1 w-full rounded border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm disabled:cursor-not-allowed"
+            />
+          ) : (
+            <div className="mt-2 space-y-2">
+              {unitOptions.length > 0 ? (
+                <div className="flex flex-wrap gap-4 text-sm text-zinc-700">
+                  <label className="inline-flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="unitInputMode"
+                      checked={unitInputMode === "select"}
+                      onChange={() => {
+                        setUnitInputMode("select");
+                        if (!unitOptions.includes(unit)) setUnit("");
+                      }}
+                      className="text-sky-600"
+                    />
+                    候補から選ぶ
+                  </label>
+                  <label className="inline-flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name="unitInputMode"
+                      checked={unitInputMode === "custom"}
+                      onChange={() => setUnitInputMode("custom")}
+                      className="text-sky-600"
+                    />
+                    自由入力
+                  </label>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500">
+                  この学年・教科の候補はまだ登録されていません。単元名を直接入力してください。
+                </p>
+              )}
+              {showUnitSelect ? (
+                <select
+                  name="unit"
+                  required
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="" disabled>
+                    単元を選択してください
+                  </option>
+                  {unitOptions.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  name="unit"
+                  required
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="単元を入力"
+                  className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <div>

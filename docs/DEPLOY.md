@@ -189,6 +189,11 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production buil
 # DB マイグレーション（コンテナ内で prisma migrate deploy）
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
 
+# 単元マスタ（CurriculumUnit）の初回投入（投稿フォームの単元候補に必要）
+# マイグレーションだけでは候補は空のまま。初回デプロイ時に一度実行する。
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npm run db:seed
+# 代替: 管理者でログイン後、/t/{tenantSlug}/admin/curriculum から単元を追加
+
 # Postgres / MinIO / app をまとめて起動（既に DB だけ起動している場合も up で揃う）
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production ps
