@@ -12,7 +12,8 @@ identfill.com (HTTPS, 443) ──▶ Nginx ──┬─▶ 127.0.0.1:3001  Next.
 s3.identfill.com (HTTPS, 443) ──▶ Nginx ──▶ 127.0.0.1:9000  MinIO (docker)
 ```
 
-- アプリは `/jugyobase` サブパス配信（`https://identfill.com/jugyobase/...`）
+- アプリは `/jugyobase` サブパス配信（`https://identfill.com/jugyobase/...`）。`identfill.com/` からはリダイレクトしない
+- 検索エンジン向けに `noindex`・`robots.txt`（`Disallow: /jugyobase/`）を設定済み
 - 同一ホストで **`https://identfill.com/space/...` に RSS 等を載せている場合**、Nginx で `/space` を jugyoBase のプロキシより先にルーティングする（手順 7 と [`deploy/nginx/identfill.conf`](../deploy/nginx/identfill.conf) のコメント例を参照）。リポジトリ同梱の `identfill.conf` だけをそのまま適用すると、`location /` が `404` のため **`/space` も 404 になる**点に注意する。
 - 添付ファイルはブラウザから `https://s3.identfill.com` に直接 PUT/GET（署名 URL）
 - リポジトリ同梱の設定ファイルは [`deploy/`](../deploy/) 配下。
@@ -290,7 +291,7 @@ npx tsx scripts/create-tenant-user.ts \
 
 ブラウザで順番に。
 
-1. `https://identfill.com/` → `/jugyobase/` にリダイレクトされ、テナント選択画面が出る
+1. `https://identfill.com/` は jugyoBase へリダイレクトしない（404 または別コンテンツ）。`https://identfill.com/jugyobase` でテナント選択画面が出る
 2. `https://identfill.com/jugyobase/t/demo/login` で Google ログイン → 投稿一覧に着地する
 3. 投稿を作成 → 添付ファイル PUT が `https://s3.identfill.com/jugyobase/...` に飛び、ステータス 200 で完了する
 4. 一覧から添付をダウンロード → 署名 URL（`s3.identfill.com`）にリダイレクトされ取得できる
