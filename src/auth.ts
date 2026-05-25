@@ -67,8 +67,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (profileHd && profileHd !== allowedDomain) {
           return false;
         }
+
+        // ドメイン一致: 初回ログイン時に自動でユーザー登録
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (!existingUser) {
+          await prisma.user.create({
+            data: {
+              email,
+              name: (profile as { name?: string }).name ?? email.split("@")[0],
+              image: (profile as { picture?: string }).picture ?? null,
+              emailVerified: new Date(),
+              tenantId: tenant.id,
+              tenantSlug: tenant.slug,
+            },
+          });
+          return true;
+        }
+
+        if (existingUser.tenantId !== tenant.id || existingUser.tenantSlug !== slug) {
+          return false;
+        }
+        return true;
       }
 
+      // ドメイン制限なし: 事前登録必須
       const user = await prisma.user.findUnique({
         where: { email },
       });
