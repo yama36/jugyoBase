@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/app/actions/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import { COMMON_GRADE_SUBJECT_LABEL, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
 
 function BarChart({
@@ -259,8 +259,7 @@ export default async function SubjectSummaryPage({
     stats.byCategoryDetail.map((row) => [row.category, row]),
   );
 
-  const subjects = SUBJECT_OPTIONS.filter((s) => s !== COMMON_GRADE_SUBJECT_LABEL);
-  const subjectRows = subjects.map((subject) => {
+  const subjectRows = SUBJECT_OPTIONS.map((subject) => {
     const detail = detailBySubject.get(subject);
     return {
       subject,
@@ -280,12 +279,18 @@ export default async function SubjectSummaryPage({
     };
   });
 
-  const maxCount = Math.max(...subjectRows.map((r) => r.count), 1);
+  const chartRows = [
+    ...categoryRows.map((r) => ({ label: r.category, count: r.count })),
+    ...subjectRows.map((r) => ({ label: r.subject, count: r.count })),
+  ];
+  const maxCount = Math.max(...chartRows.map((r) => r.count), 1);
   const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
 
   const inviteSubjects = subjectRows.filter((r) => r.count <= 1);
   const growingSubjects = subjectRows.filter((r) => r.count > 1);
+  const activeCategories = categoryRows.filter((r) => r.count > 0);
+  const emptyCategories = categoryRows.filter((r) => r.count === 0);
 
   const canCreatePost =
     session.user.tenantSlug === tenantSlug &&
@@ -321,8 +326,8 @@ export default async function SubjectSummaryPage({
         </div>
       ) : (
         <>
-          {/* みんなの共有（投稿数が多い教科）を上部に */}
-          {growingSubjects.length > 0 ? (
+          {/* みんなの共有（投稿数が多い教科 + 投稿のあるカテゴリ） */}
+          {growingSubjects.length > 0 || activeCategories.length > 0 ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-zinc-800">みんなの共有</h2>
               <ul className="grid gap-3 sm:grid-cols-2">
@@ -339,6 +344,22 @@ export default async function SubjectSummaryPage({
                     inviteTone={false}
                   />
                 ))}
+                {activeCategories.map((row) => (
+                  <CategoryCard
+                    key={row.category}
+                    tenantSlug={tenantSlug}
+                    category={row.category}
+                    count={row.count}
+                    thisMonth={row.thisMonth}
+                    authorCount={row.authorCount}
+                    barPercent={
+                      maxCategoryCount > 0
+                        ? (row.count / maxCategoryCount) * 100
+                        : 0
+                    }
+                    canCreatePost={canCreatePost}
+                  />
+                ))}
               </ul>
             </section>
           ) : null}
@@ -346,10 +367,7 @@ export default async function SubjectSummaryPage({
           {/* 教科別投稿数バーチャート */}
           <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
-            <BarChart
-              data={subjectRows.map((r) => ({ label: r.subject, count: r.count }))}
-              max={maxCount}
-            />
+            <BarChart data={chartRows} max={maxCount} />
           </section>
 
           {/* いま声を届けたい教科（投稿数が少ない教科） */}
@@ -376,30 +394,32 @@ export default async function SubjectSummaryPage({
             </section>
           ) : null}
 
-          {/* 業務改善・AI・ICT活用 カテゴリカード */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-zinc-800">
-              業務改善・AI・ICT活用
-            </h2>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {categoryRows.map((row) => (
-                <CategoryCard
-                  key={row.category}
-                  tenantSlug={tenantSlug}
-                  category={row.category}
-                  count={row.count}
-                  thisMonth={row.thisMonth}
-                  authorCount={row.authorCount}
-                  barPercent={
-                    maxCategoryCount > 0
-                      ? (row.count / maxCategoryCount) * 100
-                      : 0
-                  }
-                  canCreatePost={canCreatePost}
-                />
-              ))}
-            </ul>
-          </section>
+          {/* 業務改善・AI・ICT活用（投稿がまだないカテゴリのみ） */}
+          {emptyCategories.length > 0 ? (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold text-zinc-800">
+                業務改善・AI・ICT活用
+              </h2>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {emptyCategories.map((row) => (
+                  <CategoryCard
+                    key={row.category}
+                    tenantSlug={tenantSlug}
+                    category={row.category}
+                    count={row.count}
+                    thisMonth={row.thisMonth}
+                    authorCount={row.authorCount}
+                    barPercent={
+                      maxCategoryCount > 0
+                        ? (row.count / maxCategoryCount) * 100
+                        : 0
+                    }
+                    canCreatePost={canCreatePost}
+                  />
+                ))}
+              </ul>
+            </section>
+          ) : null}
         </>
       )}
     </div>

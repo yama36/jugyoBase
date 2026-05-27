@@ -5,6 +5,7 @@ import { listPosts } from "@/app/actions/posts";
 import { listBookmarkedPosts } from "@/app/actions/bookmarks";
 import { isNewPostShellDraft } from "@/lib/post-shell-draft";
 import { isDemoTenantSlug } from "@/lib/demo-public";
+import { DeletePostButton } from "@/components/DeletePostButton";
 
 export default async function MyPage({
   params,
@@ -58,9 +59,9 @@ export default async function MyPage({
           </p>
           <Link
             href={`/t/${tenantSlug}/profile/edit`}
-            className="mt-2 inline-block text-sm text-zinc-500 underline-offset-2 hover:underline"
+            className="mt-3 inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
           >
-            プロフィール編集
+            プロフィールを編集
           </Link>
         </div>
         {session.user.role !== "readonly" ? (
@@ -80,10 +81,13 @@ export default async function MyPage({
           </h2>
           <ul className="space-y-3">
             {drafts.map((post) => (
-              <li key={post.id}>
+              <li
+                key={post.id}
+                className="flex items-stretch gap-2 rounded-lg border border-amber-200 bg-amber-50 transition hover:border-amber-300"
+              >
                 <Link
                   href={`/t/${tenantSlug}/posts/${post.id}/edit?from=mypage`}
-                  className="block rounded-lg border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
+                  className="min-w-0 flex-1 p-4"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="flex items-center gap-2">
@@ -105,6 +109,14 @@ export default async function MyPage({
                     {post.grade} / {post.subject} / {post.unit}
                   </p>
                 </Link>
+                <div className="flex shrink-0 items-center border-l border-amber-200 px-3">
+                  <DeletePostButton
+                    tenantSlug={tenantSlug}
+                    postId={post.id}
+                    redirectTo={`/t/${tenantSlug}/mypage`}
+                    confirmTitle="この下書きを削除しますか？"
+                  />
+                </div>
               </li>
             ))}
           </ul>

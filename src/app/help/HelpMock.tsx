@@ -16,7 +16,8 @@ type Variant =
   | "policy-check"
   | "comment-form"
   | "notification-bell"
-  | "mypage";
+  | "mypage"
+  | "summary";
 
 const VARIANT_TITLES: Record<Variant, string> = {
   "school-list": "トップ：学校（テナント）の選択",
@@ -26,6 +27,7 @@ const VARIANT_TITLES: Record<Variant, string> = {
   "comment-form": "コメント欄の入力 UI",
   "notification-bell": "ヘッダーの通知ベル",
   mypage: "マイページの構成",
+  summary: "教科別の共有マップ",
 };
 
 export function HelpMock({
@@ -82,6 +84,8 @@ function renderMock(variant: Variant) {
       return <NotificationBellMock />;
     case "mypage":
       return <MyPageMock />;
+    case "summary":
+      return <SummaryMock />;
   }
 }
 
@@ -122,7 +126,7 @@ function PostListMock() {
         <div>
           <p className="text-sm font-semibold text-zinc-900">授業実践</p>
           <p className="text-[11px] text-zinc-500">
-            学年・教科・単元・タグ・キーワードで絞り込めます
+            AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
           </p>
         </div>
         <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
@@ -150,8 +154,14 @@ function PostListMock() {
             className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm"
           >
             <div className="flex gap-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded border border-zinc-200 bg-zinc-50 text-[10px] text-zinc-400">
-                {post.thumb}
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded border border-zinc-200 bg-zinc-50">
+                {post.thumb === "PDF" ? (
+                  <span className="rounded bg-red-100 px-1 py-0.5 text-[10px] font-semibold text-red-700">
+                    PDF
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-zinc-400">{post.thumb}</span>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
@@ -163,14 +173,19 @@ function PostListMock() {
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px]">
+                    <span className="text-zinc-500">カテゴリ</span>
+                    <span className="font-medium text-zinc-800">{post.category}</span>
+                  </span>
                   <span className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-800">
                     {post.grade}
                   </span>
                   <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-800">
                     {post.subject}
                   </span>
-                  <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-800">
-                    単元 {post.unit}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px]">
+                    <span className="text-amber-600">単元</span>
+                    <span className="font-medium text-amber-900">{post.unit}</span>
                   </span>
                 </div>
                 <p className="mt-1.5 text-[10px] text-sky-700">
@@ -193,6 +208,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
   title: string;
   thumb: string;
   date: string;
+  category: string;
   grade: string;
   subject: string;
   unit: string;
@@ -204,6 +220,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     title: "連立方程式：買い物の場面で式を立てる",
     thumb: "PDF",
     date: "2026/05/10",
+    category: "授業",
     grade: "2年",
     subject: "数学",
     unit: "連立方程式",
@@ -215,6 +232,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     title: "走れメロスを「友情」の視点で読み直す",
     thumb: "JPG",
     date: "2026/05/08",
+    category: "授業",
     grade: "2年",
     subject: "国語",
     unit: "走れメロス",
@@ -439,6 +457,7 @@ function NotificationBellMock() {
             <span>事例一覧</span>
             <span>新規投稿</span>
             <span>マイページ</span>
+            <span>教科別一覧</span>
             <span className="relative inline-flex">
               <span aria-hidden>🔔</span>
               <span className="absolute -right-2 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
@@ -480,35 +499,47 @@ function NotificationBellMock() {
 function MyPageMock() {
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-sm font-semibold text-zinc-900">マイページ</p>
-        <p className="text-[11px] text-zinc-500">
-          自分が投稿した授業実践を管理できます
-        </p>
-        <p className="mt-1 text-[11px] text-zinc-500 underline-offset-2">
-          プロフィール編集
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-zinc-900">マイページ</p>
+          <p className="text-[11px] text-zinc-500">
+            自分が投稿した授業実践を管理できます
+          </p>
+          <span className="mt-2 inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-[11px] font-medium text-zinc-800 shadow-sm">
+            プロフィールを編集
+          </span>
+        </div>
+        <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
+          新規投稿
+        </span>
       </div>
 
       <div className="space-y-2">
         <p className="text-[11px] font-semibold text-zinc-600">
           下書き（1件）
         </p>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                下書き
+        <div className="flex items-stretch gap-2 rounded-lg border border-amber-200 bg-amber-50">
+          <div className="min-w-0 flex-1 p-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="flex items-center gap-1.5">
+                <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                  下書き
+                </span>
+                <span className="text-xs font-medium text-zinc-900">
+                  水溶液の性質：色の変化を予想する
+                </span>
               </span>
-              <span className="text-xs font-medium text-zinc-900">
-                水溶液の性質：色の変化を予想する
-              </span>
-            </span>
-            <span className="text-[10px] text-zinc-400">2026/05/11</span>
+              <span className="text-[10px] text-zinc-400">2026/05/11</span>
+            </div>
+            <p className="mt-1 text-[10px] text-zinc-600">
+              小6 / 理科 / 水溶液の性質
+            </p>
           </div>
-          <p className="mt-1 text-[10px] text-zinc-600">
-            小6 / 理科 / 水溶液の性質
-          </p>
+          <div className="flex shrink-0 items-center border-l border-amber-200 px-2">
+            <span className="rounded border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] text-red-800">
+              削除
+            </span>
+          </div>
         </div>
       </div>
 
@@ -548,6 +579,93 @@ function MyPageMock() {
             2年 / 国語 / 走れメロス
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryMock() {
+  const chartRows = [
+    { label: "業務改善", count: 5, width: 83 },
+    { label: "AI・ICT活用", count: 3, width: 50 },
+    { label: "数学", count: 6, width: 100 },
+    { label: "国語", count: 4, width: 67 },
+    { label: "共通", count: 2, width: 33 },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold text-zinc-900">教科別の共有マップ</p>
+        <p className="text-[11px] leading-relaxed text-zinc-500">
+          いま校内でどの教科に知見が集まっているかが一目でわかります。
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "累計投稿数", value: "24件" },
+          { label: "今月の投稿", value: "8件" },
+          { label: "共有のある教科", value: "10教科" },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className="rounded-lg border border-zinc-200 bg-white p-2 shadow-sm"
+          >
+            <p className="text-[9px] text-zinc-500">{card.label}</p>
+            <p className="mt-0.5 text-sm font-semibold text-zinc-900">{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold text-zinc-800">みんなの共有</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-zinc-200 bg-white p-2.5">
+            <div className="flex items-start justify-between gap-1">
+              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-800">
+                数学
+              </span>
+              <span className="text-xs font-semibold text-zinc-900">6件</span>
+            </div>
+            <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+              <div className="absolute left-0 top-0 h-full w-4/5 rounded-full bg-sky-500" />
+            </div>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white p-2.5">
+            <div className="flex items-start justify-between gap-1">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-900">
+                業務改善
+              </span>
+              <span className="text-xs font-semibold text-zinc-900">5件</span>
+            </div>
+            <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+              <div className="absolute left-0 top-0 h-full w-3/4 rounded-full bg-emerald-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-zinc-200 bg-white p-3">
+        <p className="text-[11px] font-semibold text-zinc-800">教科別投稿数</p>
+        <ul className="mt-2 space-y-1.5">
+          {chartRows.map((row) => (
+            <li key={row.label} className="flex items-center gap-2">
+              <span className="w-16 shrink-0 truncate text-right text-[10px] text-zinc-600">
+                {row.label}
+              </span>
+              <div className="relative h-3 flex-1 overflow-hidden rounded bg-zinc-100">
+                <div
+                  className="absolute left-0 top-0 h-full rounded bg-sky-500"
+                  style={{ width: `${row.width}%` }}
+                />
+              </div>
+              <span className="w-4 shrink-0 text-right text-[10px] font-medium text-zinc-700">
+                {row.count}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

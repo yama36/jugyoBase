@@ -244,12 +244,9 @@ export default async function PostsPage({
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full w-full flex-col items-center justify-center text-[11px] text-zinc-600">
+                          <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-600">
                             <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">
                               PDF
-                            </span>
-                            <span className="mt-1 px-1 text-center leading-tight">
-                              サムネイル
                             </span>
                           </div>
                         )}

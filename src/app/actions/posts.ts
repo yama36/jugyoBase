@@ -789,6 +789,8 @@ export async function deletePost(
       tx.post.delete({ where: { id: postId } }),
     );
     revalidatePath(`/t/${tenantSlug}/posts`);
+    revalidatePath(`/t/${tenantSlug}/mypage`);
+    revalidatePath(`/t/${tenantSlug}/summary`);
     return { ok: true };
   } catch {
     return { ok: false, message: "削除に失敗しました" };

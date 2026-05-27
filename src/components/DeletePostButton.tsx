@@ -8,6 +8,9 @@ import { ConfirmDialog } from "./ConfirmDialog";
 export function DeletePostButton(props: {
   tenantSlug: string;
   postId: string;
+  /** 削除成功後の遷移先（省略時は事例一覧） */
+  redirectTo?: string;
+  confirmTitle?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -23,7 +26,9 @@ export function DeletePostButton(props: {
         return;
       }
       setOpen(false);
-      router.push(`/t/${props.tenantSlug}/posts`);
+      router.push(
+        props.redirectTo ?? `/t/${props.tenantSlug}/posts`,
+      );
       router.refresh();
     });
   }
@@ -46,7 +51,7 @@ export function DeletePostButton(props: {
         onOpenChange={(next) => {
           if (!pending) setOpen(next);
         }}
-        title="この投稿を削除しますか？"
+        title={props.confirmTitle ?? "この投稿を削除しますか？"}
         description="削除すると元に戻せません。添付ファイルもあわせて削除されます。"
         error={error}
         confirmLabel="削除する"
