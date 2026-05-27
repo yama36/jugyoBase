@@ -37,6 +37,7 @@ export default async function PostsPage({
   const subject = typeof sp.subject === "string" ? sp.subject : undefined;
   const unit = typeof sp.unit === "string" ? sp.unit : undefined;
   const tag = typeof sp.tag === "string" ? sp.tag : undefined;
+  const category = typeof sp.category === "string" ? sp.category : undefined;
 
   const [posts, options] = await Promise.all([
     listPosts(tenantId, {
@@ -45,10 +46,11 @@ export default async function PostsPage({
       subject,
       unit,
       tag,
+      category,
     }),
     listPostSearchOptions(tenantId),
   ]);
-  const hasSearchParams = Boolean(q || grade || subject || unit || tag);
+  const hasSearchParams = Boolean(q || grade || subject || unit || tag || category);
 
   return (
     <div className="space-y-8">
@@ -163,6 +165,19 @@ export default async function PostsPage({
               ))}
             </datalist>
           </div>
+          <div>
+            <label className="text-xs font-medium text-zinc-600">カテゴリ</label>
+            <select
+              name="category"
+              defaultValue={category ?? ""}
+              className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">指定なし</option>
+              <option value="授業">授業</option>
+              <option value="業務改善">業務改善</option>
+              <option value="AI・ICT活用">AI・ICT活用</option>
+            </select>
+          </div>
           <div className="flex items-end gap-2 sm:col-span-2">
             <button
               type="submit"
@@ -254,18 +269,7 @@ export default async function PostsPage({
                         </time>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${gradeColor.wrapper}`}
-                        >
-                          <span className={gradeColor.value}>{post.grade}</span>
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${subjectColor.wrapper}`}
-                        >
-                          <span className={subjectColor.value}>
-                            {post.subject}
-                          </span>
-                        </span>
+                        {/* カテゴリバッジを先頭に */}
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${categoryColor.wrapper}`}
                         >
@@ -274,6 +278,22 @@ export default async function PostsPage({
                             {post.category ?? "授業"}
                           </span>
                         </span>
+                        {post.grade ? (
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${gradeColor.wrapper}`}
+                          >
+                            <span className={gradeColor.value}>{post.grade}</span>
+                          </span>
+                        ) : null}
+                        {post.subject ? (
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${subjectColor.wrapper}`}
+                          >
+                            <span className={subjectColor.value}>
+                              {post.subject}
+                            </span>
+                          </span>
+                        ) : null}
                         {(post as { hasCurriculumUnitOptions?: boolean }).hasCurriculumUnitOptions ? (
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${unitColor.wrapper}`}

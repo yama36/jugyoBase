@@ -87,77 +87,75 @@ export default async function PostDetailPage({
     { key: "point", title: sectionLabels.point, value: post.point },
   ].filter((section) => section.value && section.value.trim().length > 0);
 
-  const backTopLabel = backToMypage ? "マイページ" : "事例一覧";
+  const backTopLabel = backToMypage ? "マイページ" : "一覧";
   const titleText = post.title?.trim() || "（無題）";
   const hasMobileActions = canLike || canBookmark || canEdit;
+  const hasContent = contentSections.length > 0 || post.referenceUrl?.trim();
 
   return (
     <article className="space-y-6 pb-24 sm:pb-0">
-      <nav
-        aria-label="breadcrumb"
-        className="flex items-center justify-between gap-3 text-xs text-zinc-500"
-      >
-        <ol className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <li>
-            <Link
-              href={backHref}
-              className="cursor-pointer rounded hover:text-zinc-800 hover:underline"
-            >
-              {backTopLabel}
-            </Link>
-          </li>
-          <li aria-hidden="true" className="text-zinc-300">
-            /
-          </li>
-          <li
-            aria-current="page"
-            className="max-w-[60ch] truncate text-zinc-700"
-          >
-            {titleText}
-          </li>
-        </ol>
-        <time
-          dateTime={post.createdAt.toISOString()}
-          className="shrink-0"
+      {/* 上部：一覧に戻るボタン + PC アクション */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
         >
-          {post.createdAt.toLocaleDateString("ja-JP")}
-        </time>
-      </nav>
-
-      {/* PC: 上部のアクションバー */}
-      <div className="hidden flex-wrap items-center justify-end gap-2 py-1 sm:flex">
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <LikeButton
-            tenantSlug={tenantSlug}
-            postId={postId}
-            initialLiked={likeInfo.liked}
-            initialCount={likeInfo.count}
-            canLike={canLike}
-          />
-          <BookmarkButton
-            tenantSlug={tenantSlug}
-            postId={postId}
-            initialBookmarked={bookmarked}
-            disabled={!canBookmark}
-          />
-          <Link
-            href={`/t/${tenantSlug}/posts/${postId}/print`}
-            className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
-            title="印刷・PDF保存"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
           >
-            PDF保存
-          </Link>
-          {canEdit ? (
-            <>
-              <Link
-                href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
-                className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
-              >
-                編集
-              </Link>
-              <DeletePostButton tenantSlug={tenantSlug} postId={postId} />
-            </>
-          ) : null}
+            <path
+              fillRule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {backTopLabel}に戻る
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <time
+            dateTime={post.createdAt.toISOString()}
+            className="text-xs text-zinc-500"
+          >
+            {post.createdAt.toLocaleDateString("ja-JP")}
+          </time>
+          {/* PC のみ表示するアクション群 */}
+          <div className="hidden items-center gap-2 sm:flex">
+            <LikeButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialLiked={likeInfo.liked}
+              initialCount={likeInfo.count}
+              canLike={canLike}
+            />
+            <BookmarkButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialBookmarked={bookmarked}
+              disabled={!canBookmark}
+            />
+            <Link
+              href={`/t/${tenantSlug}/posts/${postId}/print`}
+              className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+              title="印刷・PDF保存"
+            >
+              PDF保存
+            </Link>
+            {canEdit ? (
+              <>
+                <Link
+                  href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
+                  className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                >
+                  編集
+                </Link>
+                <DeletePostButton tenantSlug={tenantSlug} postId={postId} />
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -166,22 +164,27 @@ export default async function PostDetailPage({
           {titleText}
         </h1>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${gradeColor.wrapper}`}
-          >
-            <span className={gradeColor.value}>{post.grade}</span>
-          </span>
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${subjectColor.wrapper}`}
-          >
-            <span className={subjectColor.value}>{post.subject}</span>
-          </span>
+          {/* カテゴリバッジを先頭に */}
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${categoryColor.wrapper}`}
           >
             <span className={categoryColor.label}>カテゴリ</span>
             <span className={categoryColor.value}>{category}</span>
           </span>
+          {post.grade ? (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${gradeColor.wrapper}`}
+            >
+              <span className={gradeColor.value}>{post.grade}</span>
+            </span>
+          ) : null}
+          {post.subject ? (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${subjectColor.wrapper}`}
+            >
+              <span className={subjectColor.value}>{post.subject}</span>
+            </span>
+          ) : null}
           {post.hasCurriculumUnitOptions ? (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${unitColor.wrapper}`}
@@ -213,8 +216,8 @@ export default async function PostDetailPage({
         </div>
       </header>
 
-      {/* 本文：1枚のカードにまとめ、セクション間は区切り線でつなぐ */}
-      {contentSections.length > 0 ? (
+      {/* 本文：1枚のカードにまとめ、参考URLも統合 */}
+      {hasContent ? (
         <section className="space-y-1 rounded-xl border border-zinc-200 bg-white p-1 shadow-sm">
           {contentSections.map((section) => (
             <div key={section.key} className="space-y-2 p-4">
@@ -230,20 +233,25 @@ export default async function PostDetailPage({
               </p>
             </div>
           ))}
-        </section>
-      ) : null}
-
-      {post.referenceUrl?.trim() ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-zinc-900">参考URL</h2>
-          <a
-            href={post.referenceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 block break-all text-sm text-sky-700 underline-offset-2 hover:underline"
-          >
-            {post.referenceUrl}
-          </a>
+          {post.referenceUrl?.trim() ? (
+            <div className="space-y-2 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-4 w-1 rounded-full bg-zinc-400"
+                />
+                参考URL
+              </h2>
+              <a
+                href={post.referenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block break-all text-sm text-sky-700 underline-offset-2 hover:underline"
+              >
+                {post.referenceUrl}
+              </a>
+            </div>
+          ) : null}
         </section>
       ) : null}
 

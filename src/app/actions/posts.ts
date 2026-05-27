@@ -109,6 +109,7 @@ export type PostSearchParams = {
   subject?: string;
   unit?: string;
   tag?: string;
+  category?: string;
   authorId?: string;
   includeDrafts?: boolean;
 };
@@ -183,6 +184,7 @@ export async function listPosts(
   if (!params.includeDrafts) filters.push({ isPublished: true });
   if (params.grade) filters.push({ grade: params.grade });
   if (params.subject) filters.push({ subject: params.subject });
+  if (params.category) filters.push({ category: params.category });
   if (params.unit?.trim())
     filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });
   if (tag) filters.push({ tags: { some: { tag: { name: tag } } } });

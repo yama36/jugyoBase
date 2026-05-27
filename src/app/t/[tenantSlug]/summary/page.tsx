@@ -143,6 +143,96 @@ function SubjectCard({
   );
 }
 
+const CATEGORY_COLORS: Record<
+  string,
+  { wrapper: string; label: string; value: string; bar: string }
+> = {
+  業務改善: {
+    wrapper: "bg-emerald-50 border border-emerald-200",
+    label: "text-emerald-600",
+    value: "text-emerald-900 font-medium",
+    bar: "bg-emerald-500",
+  },
+  "AI・ICT活用": {
+    wrapper: "bg-violet-50 border border-violet-200",
+    label: "text-violet-600",
+    value: "text-violet-900 font-medium",
+    bar: "bg-violet-500",
+  },
+};
+
+function CategoryCard({
+  tenantSlug,
+  category,
+  count,
+  thisMonth,
+  authorCount,
+  barPercent,
+  canCreatePost,
+}: {
+  tenantSlug: string;
+  category: string;
+  count: number;
+  thisMonth: number;
+  authorCount: number;
+  barPercent: number;
+  canCreatePost: boolean;
+}) {
+  const color = CATEGORY_COLORS[category] ?? {
+    wrapper: "bg-zinc-100 border border-zinc-200",
+    label: "text-zinc-500",
+    value: "text-zinc-800 font-medium",
+    bar: "bg-zinc-400",
+  };
+  const postsHref = `/t/${tenantSlug}/posts?category=${encodeURIComponent(category)}`;
+
+  return (
+    <li className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300">
+      <Link href={postsHref} className="block">
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${color.wrapper}`}
+          >
+            <span className={color.value}>{category}</span>
+          </span>
+          <span className="text-lg font-semibold text-zinc-900">{count}件</span>
+        </div>
+
+        <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className={`absolute left-0 top-0 h-full rounded-full ${color.bar}`}
+            style={{ width: `${barPercent}%` }}
+          />
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">
+          {thisMonth > 0 ? (
+            <span className="font-medium text-sky-700">+{thisMonth}件（今月）</span>
+          ) : null}
+          {authorCount > 0 ? <span>{authorCount}人が共有中</span> : null}
+        </div>
+
+        {count === 0 ? (
+          <p className="mt-3 text-sm leading-relaxed text-zinc-600">
+            まだ投稿がありません。
+          </p>
+        ) : null}
+      </Link>
+
+      {count === 0 && canCreatePost ? (
+        <div className="mt-3">
+          <Link
+            href={`/t/${tenantSlug}/posts/new`}
+            className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800"
+          >
+            新規投稿
+          </Link>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 export default async function SubjectSummaryPage({
   params,
 }: {
@@ -165,6 +255,9 @@ export default async function SubjectSummaryPage({
   const detailBySubject = new Map(
     stats.bySubjectDetail.map((row) => [row.subject, row]),
   );
+  const detailByCategory = new Map(
+    stats.byCategoryDetail.map((row) => [row.category, row]),
+  );
 
   const subjects = SUBJECT_OPTIONS.filter((s) => s !== COMMON_GRADE_SUBJECT_LABEL);
   const subjectRows = subjects.map((subject) => {
@@ -177,7 +270,18 @@ export default async function SubjectSummaryPage({
     };
   });
 
+  const categoryRows = ["業務改善", "AI・ICT活用"].map((cat) => {
+    const detail = detailByCategory.get(cat);
+    return {
+      category: cat,
+      count: detail?.count ?? 0,
+      thisMonth: detail?.thisMonth ?? 0,
+      authorCount: detail?.authorCount ?? 0,
+    };
+  });
+
   const maxCount = Math.max(...subjectRows.map((r) => r.count), 1);
+  const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
 
   const inviteSubjects = subjectRows.filter((r) => r.count <= 1);
@@ -217,6 +321,38 @@ export default async function SubjectSummaryPage({
         </div>
       ) : (
         <>
+          {/* みんなの共有（投稿数が多い教科）を上部に */}
+          {growingSubjects.length > 0 ? (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold text-zinc-800">みんなの共有</h2>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {growingSubjects.map((row) => (
+                  <SubjectCard
+                    key={row.subject}
+                    tenantSlug={tenantSlug}
+                    subject={row.subject}
+                    count={row.count}
+                    thisMonth={row.thisMonth}
+                    authorCount={row.authorCount}
+                    barPercent={maxCount > 0 ? (row.count / maxCount) * 100 : 0}
+                    canCreatePost={canCreatePost}
+                    inviteTone={false}
+                  />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* 教科別投稿数バーチャート */}
+          <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
+            <BarChart
+              data={subjectRows.map((r) => ({ label: r.subject, count: r.count }))}
+              max={maxCount}
+            />
+          </section>
+
+          {/* いま声を届けたい教科（投稿数が少ない教科） */}
           {inviteSubjects.length > 0 ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-zinc-800">
@@ -240,33 +376,29 @@ export default async function SubjectSummaryPage({
             </section>
           ) : null}
 
-          {growingSubjects.length > 0 ? (
-            <section className="space-y-4">
-              <h2 className="text-sm font-semibold text-zinc-800">みんなの共有</h2>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {growingSubjects.map((row) => (
-                  <SubjectCard
-                    key={row.subject}
-                    tenantSlug={tenantSlug}
-                    subject={row.subject}
-                    count={row.count}
-                    thisMonth={row.thisMonth}
-                    authorCount={row.authorCount}
-                    barPercent={maxCount > 0 ? (row.count / maxCount) * 100 : 0}
-                    canCreatePost={canCreatePost}
-                    inviteTone={false}
-                  />
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
-            <BarChart
-              data={subjectRows.map((r) => ({ label: r.subject, count: r.count }))}
-              max={maxCount}
-            />
+          {/* 業務改善・AI・ICT活用 カテゴリカード */}
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-zinc-800">
+              業務改善・AI・ICT活用
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {categoryRows.map((row) => (
+                <CategoryCard
+                  key={row.category}
+                  tenantSlug={tenantSlug}
+                  category={row.category}
+                  count={row.count}
+                  thisMonth={row.thisMonth}
+                  authorCount={row.authorCount}
+                  barPercent={
+                    maxCategoryCount > 0
+                      ? (row.count / maxCategoryCount) * 100
+                      : 0
+                  }
+                  canCreatePost={canCreatePost}
+                />
+              ))}
+            </ul>
           </section>
         </>
       )}
