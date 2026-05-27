@@ -29,19 +29,43 @@ import { isCommonGradeOrSubjectSelection } from "@/lib/subject-grade-options";
 const postFields = z
   .object({
     tenantSlug: z.string().min(1),
+    category: z.enum(["授業", "業務改善", "AI・ICT活用"]),
     title: z.string().max(200).optional().nullable(),
-    grade: z.string().min(1).max(80),
-    subject: z.string().min(1).max(80),
+    grade: z.string().max(80),
+    subject: z.string().max(80),
     unit: z.string().max(500),
     contentItem: z.string().max(500).optional().nullable(),
     aim: z.string().max(5000).optional().nullable(),
     reflection: z.string().max(20000).optional().nullable(),
     point: z.string().max(20000).optional().nullable(),
     flow: z.string().max(20000).optional().nullable(),
+    referenceUrl: z.string().url().max(2000).optional().nullable(),
     hashtagsRaw: z.string().max(2000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
-    if (isCommonGradeOrSubjectSelection(data.grade, data.subject)) return;
+    const isClassroomCategory = data.category === "授業";
+    if (isClassroomCategory && !data.grade.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "学年を選択してください",
+        path: ["grade"],
+      });
+    }
+    if (isClassroomCategory && !data.subject.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "教科を選択してください",
+        path: ["subject"],
+      });
+    }
+    if (
+      !isClassroomCategory ||
+      !data.grade.trim() ||
+      !data.subject.trim() ||
+      isCommonGradeOrSubjectSelection(data.grade, data.subject)
+    ) {
+      return;
+    }
     if (!data.unit.trim()) {
       ctx.addIssue({
         code: "custom",
@@ -123,7 +147,7 @@ async function ensureCurriculumUnitOption(input: {
 export async function listPosts(
   tenantId: string,
   params: PostSearchParams,
-) {
+): Promise<any[]> {
   const q = params.q?.trim();
   const tag = params.tag?.trim().toLowerCase();
 
@@ -145,8 +169,8 @@ export async function listPosts(
     });
   }
 
-  return withTenantRls(tenantId, (tx) =>
-    tx.post.findMany({
+  return withTenantRls(tenantId, async (tx) => {
+    const posts = await tx.post.findMany({
       where: filters.length ? { AND: filters } : {},
       orderBy: { createdAt: "desc" },
       include: {
@@ -162,8 +186,39 @@ export async function listPosts(
         },
         _count: { select: { likes: true, comments: true } },
       } as any,
-    }),
-  );
+    });
+
+    const pairs = Array.from(
+      new Set(
+        posts
+          .filter((post) => post.grade.trim() && post.subject.trim())
+          .map((post) => `${post.grade}:::${post.subject}`),
+      ),
+    ).map((key) => {
+      const [grade, subject] = key.split(":::");
+      return { grade, subject };
+    });
+    if (pairs.length === 0) {
+      return posts.map((post) => ({ ...post, hasCurriculumUnitOptions: false }));
+    }
+    const curriculumPairs = await tx.curriculumUnit.findMany({
+      where: {
+        schoolType: "junior_high",
+        isActive: true,
+        OR: pairs,
+      },
+      select: { grade: true, subject: true },
+      distinct: ["grade", "subject"],
+    });
+    const curriculumPairSet = new Set(
+      curriculumPairs.map((pair) => `${pair.grade}:::${pair.subject}`),
+    );
+
+    return posts.map((post) => ({
+      ...post,
+      hasCurriculumUnitOptions: curriculumPairSet.has(`${post.grade}:::${post.subject}`),
+    }));
+  });
 }
 
 export async function listPostSearchOptions(tenantId: string): Promise<{
@@ -233,17 +288,31 @@ export async function listCurriculumUnitOptions(): Promise<CurriculumUnitOption[
   `;
 }
 
-export async function getPost(tenantId: string, postId: string) {
-  return withTenantRls(tenantId, (tx) =>
-    tx.post.findUnique({
+export async function getPost(tenantId: string, postId: string): Promise<any | null> {
+  return withTenantRls(tenantId, async (tx) => {
+    const post = await tx.post.findUnique({
       where: { id: postId },
       include: {
         author: { select: { id: true, name: true, image: true, email: true } },
         tags: { include: { tag: true } },
         attachments: { orderBy: { createdAt: "asc" } },
       },
-    }),
-  );
+    });
+    if (!post || !post.grade.trim() || !post.subject.trim()) {
+      return post
+        ? { ...post, hasCurriculumUnitOptions: false }
+        : post;
+    }
+    const unitCount = await tx.curriculumUnit.count({
+      where: {
+        schoolType: "junior_high",
+        isActive: true,
+        grade: post.grade,
+        subject: post.subject,
+      },
+    });
+    return { ...post, hasCurriculumUnitOptions: unitCount > 0 };
+  });
 }
 
 async function syncPostTags(
@@ -357,15 +426,17 @@ export async function createPost(
 
   const parsed = postFields.safeParse({
     tenantSlug: formData.get("tenantSlug"),
+    category: formData.get("category"),
     title: formData.get("title") || null,
-    grade: formData.get("grade"),
-    subject: formData.get("subject"),
+    grade: String(formData.get("grade") ?? ""),
+    subject: String(formData.get("subject") ?? ""),
     unit: String(formData.get("unit") ?? ""),
     contentItem: formData.get("contentItem") || null,
     aim: formData.get("aim") || null,
     reflection: formData.get("reflection") || null,
     point: formData.get("point"),
     flow: formData.get("flow"),
+    referenceUrl: formData.get("referenceUrl") || null,
     hashtagsRaw: formData.get("hashtags") || null,
   });
 
@@ -414,6 +485,7 @@ export async function createPost(
         data: {
           tenantId,
           authorId: session.user.id,
+          category: data.category,
           title: data.title || null,
           grade: data.grade,
           subject: data.subject,
@@ -423,6 +495,7 @@ export async function createPost(
           reflection: data.reflection?.trim() || null,
           point: data.point?.trim() || null,
           flow: data.flow?.trim() || null,
+          referenceUrl: data.referenceUrl?.trim() || null,
           searchText,
           isPublished: !isDraft,
         } as any,
@@ -456,15 +529,17 @@ export async function updatePost(
 
   const parsed = postFields.safeParse({
     tenantSlug: formData.get("tenantSlug"),
+    category: formData.get("category"),
     title: formData.get("title") || null,
-    grade: formData.get("grade"),
-    subject: formData.get("subject"),
+    grade: String(formData.get("grade") ?? ""),
+    subject: String(formData.get("subject") ?? ""),
     unit: String(formData.get("unit") ?? ""),
     contentItem: formData.get("contentItem") || null,
     aim: formData.get("aim") || null,
     reflection: formData.get("reflection") || null,
     point: formData.get("point"),
     flow: formData.get("flow"),
+    referenceUrl: formData.get("referenceUrl") || null,
     hashtagsRaw: formData.get("hashtags") || null,
   });
 
@@ -518,6 +593,7 @@ export async function updatePost(
         where: { id: postId },
         data: {
           title: data.title || null,
+          category: data.category,
           grade: data.grade,
           subject: data.subject,
           unit: data.unit,
@@ -526,6 +602,7 @@ export async function updatePost(
           reflection: data.reflection?.trim() || null,
           point: data.point?.trim() || null,
           flow: data.flow?.trim() || null,
+          referenceUrl: data.referenceUrl?.trim() || null,
           searchText,
           isPublished: !isDraft,
         } as any,
@@ -700,7 +777,7 @@ export async function deleteAttachment(input: {
     return { ok: false, message: "削除する権限がありません" };
   }
 
-  const attachment = post.attachments.find((a) => a.id === input.attachmentId);
+  const attachment = post.attachments.find((a: any) => a.id === input.attachmentId);
   if (!attachment) {
     return { ok: false, message: "添付が見つかりません" };
   }

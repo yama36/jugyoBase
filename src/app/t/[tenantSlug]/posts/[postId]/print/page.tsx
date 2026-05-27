@@ -100,7 +100,7 @@ export default async function PostPrintPage({
           </p>
           {post.tags.length > 0 ? (
             <p className="text-xs text-zinc-500 print:text-black">
-              {post.tags.map((pt) => `#${pt.tag.name}`).join("  ")}
+              {post.tags.map((pt: any) => `#${pt.tag.name}`).join("  ")}
             </p>
           ) : null}
         </header>

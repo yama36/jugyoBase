@@ -148,6 +148,8 @@ model Post {
   id               String          @id @default(cuid())
   tenantId         String
   authorId         String
+  /// 投稿カテゴリ（授業 / 業務改善 / AI・ICT活用）
+  category         String          @default("授業")
   /// 一覧表示用の短いタイトル（任意だが UI では推奨）
   title            String?
   grade            String
@@ -171,6 +173,8 @@ model Post {
   isPublished      Boolean         @default(true)
   /// 検索用に結合したテキスト（アプリが更新）
   searchText       String          @default("") @db.Text
+  /// 参考URL（任意）
+  referenceUrl     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

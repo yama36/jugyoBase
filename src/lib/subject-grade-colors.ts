@@ -79,6 +79,11 @@ const SUBJECT_BADGE: Record<string, BadgeClasses> = {
     label: "text-teal-700/80",
     value: "text-teal-900 font-medium",
   },
+  授業準備: {
+    wrapper: "bg-indigo-50 border border-indigo-200",
+    label: "text-indigo-700/80",
+    value: "text-indigo-900 font-medium",
+  },
   共通: {
     wrapper: "bg-violet-50 border border-violet-200",
     label: "text-violet-700/80",

@@ -88,6 +88,9 @@ export function PostEditor(props: Props) {
   const [subject, setSubject] = useState<string>(p?.subject ?? "");
   const [unit, setUnit] = useState<string>(p?.unit ?? "");
   const [contentItem, setContentItem] = useState<string>(p?.contentItem?.trim() ?? "");
+  const [category, setCategory] = useState<string>(
+    (p as (Post & { category?: string }) | null)?.category ?? "授業",
+  );
   const [unitInputMode, setUnitInputMode] = useState<"select" | "custom">(() => {
     const g = p?.grade ?? "";
     const s = p?.subject ?? "";
@@ -125,8 +128,34 @@ export function PostEditor(props: Props) {
   }, [filteredUnits]);
 
   const unitFieldsReady = Boolean(grade && subject);
-  const unitRequired = unitFieldsReady && !isCommonGradeOrSubjectSelection(grade, subject);
+  const gradeRequired = category === "授業";
+  const subjectRequired = category === "授業";
+  const unitRequired =
+    category === "授業" &&
+    unitFieldsReady &&
+    !isCommonGradeOrSubjectSelection(grade, subject);
   const showUnitSelect = unitFieldsReady && unitInputMode === "select" && unitOptions.length > 0;
+  const sectionLabels =
+    category === "業務改善"
+      ? {
+          aim: "課題・背景",
+          reflection: "効果・結果",
+          point: "試みたこと（ツール名など）",
+          flow: "気をつける点",
+        }
+      : category === "AI・ICT活用"
+        ? {
+            aim: "活用場面",
+            reflection: "よかった点・気をつけた点",
+            point: "使用したAI・ツール名",
+            flow: "使ったプロンプト例",
+          }
+        : {
+            aim: "めあて",
+            reflection: "振り返り",
+            point: "工夫した点（POINT）",
+            flow: "簡単な授業の流れ",
+          };
 
   return (
     <div className="space-y-6">
@@ -151,6 +180,23 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
+            カテゴリ <span className="text-red-600">*</span>
+          </label>
+          <select
+            name="category"
+            required
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="授業">授業</option>
+            <option value="業務改善">業務改善</option>
+            <option value="AI・ICT活用">AI・ICT活用</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
             タイトル <span className="text-red-600">*</span>
           </label>
           <input
@@ -166,11 +212,16 @@ export function PostEditor(props: Props) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-zinc-700">
-              学年 <span className="text-red-600">*</span>
+              学年{" "}
+              {gradeRequired ? (
+                <span className="text-red-600">*</span>
+              ) : (
+                <span className="text-xs font-normal text-zinc-500">（任意）</span>
+              )}
             </label>
             <select
               name="grade"
-              required
+              required={gradeRequired}
               value={grade}
               onChange={(e) => {
                 setGrade(e.target.value);
@@ -191,11 +242,16 @@ export function PostEditor(props: Props) {
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700">
-              教科 <span className="text-red-600">*</span>
+              教科{" "}
+              {subjectRequired ? (
+                <span className="text-red-600">*</span>
+              ) : (
+                <span className="text-xs font-normal text-zinc-500">（任意）</span>
+              )}
             </label>
             <select
               name="subject"
-              required
+              required={subjectRequired}
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value);
@@ -226,7 +282,9 @@ export function PostEditor(props: Props) {
             ) : null}
           </label>
           <p className="mt-1 text-xs text-zinc-500">
-            {unitRequired
+            {category !== "授業"
+              ? "業務改善・AI/ICT活用では単元は任意です。必要な場合のみ入力してください。"
+              : unitRequired
               ? "候補から選ぶか、候補にない場合は自由入力できます。学年・教科が「共通」の単元は、該当する組み合わせの候補にも表示されます。"
               : "学年または教科が「共通」の場合、単元の入力は任意です。"}
           </p>
@@ -315,44 +373,38 @@ export function PostEditor(props: Props) {
             disabled={!grade || !subject}
             maxLength={500}
             placeholder={
-              !grade || !subject ? "先に学年と教科を選択してください" : "例: 連立方程式（なければ空のままでも構いません）"
+              !grade || !subject
+                ? "先に学年と教科を選択してください"
+                : "例: 連立方程式（なければ空のままでも構いません）"
             }
             className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-zinc-100"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">めあて</label>
-          <p className="mt-1 text-xs text-zinc-500">
-            生徒が「この授業で何ができるようになるか」
-          </p>
+          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.aim}</label>
           <textarea
             name="aim"
             rows={4}
             defaultValue={p?.aim ?? ""}
-            placeholder="例: 連立方程式を使って、買い物の問題を自分で解けるようになる。"
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">振り返り</label>
-          <p className="mt-1 text-xs text-zinc-500">
-            生徒が「できたこと・難しかったこと・次に頑張ること」
-          </p>
-          <textarea
-            name="reflection"
-            rows={4}
-            defaultValue={p?.reflection ?? ""}
-            placeholder="例: 式を立てるところで迷った。次は条件を表に整理してから取り組みたい。"
             className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            工夫した点（POINT）
+            {sectionLabels.reflection}
           </label>
+          <textarea
+            name="reflection"
+            rows={4}
+            defaultValue={p?.reflection ?? ""}
+            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.point}</label>
           <textarea
             name="point"
             rows={3}
@@ -362,9 +414,7 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            簡単な授業の流れ
-          </label>
+          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.flow}</label>
           <textarea
             name="flow"
             rows={4}
@@ -393,6 +443,19 @@ export function PostEditor(props: Props) {
               <option key={tag} value={tag} />
             ))}
           </datalist>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            参考URL（任意）
+          </label>
+          <input
+            name="referenceUrl"
+            type="url"
+            defaultValue={(p as (Post & { referenceUrl?: string | null }) | null)?.referenceUrl ?? ""}
+            placeholder="https://example.com/"
+            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+          />
         </div>
 
         <PolicyChecklist />

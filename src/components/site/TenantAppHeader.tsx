@@ -41,6 +41,9 @@ export function TenantAppHeader({
             <Link href={`/t/${tenantSlug}/mypage`} className="hover:text-zinc-900">
               マイページ
             </Link>
+            <Link href={`/t/${tenantSlug}/summary`} className="hover:text-zinc-900">
+              教科別一覧
+            </Link>
             {isAdmin ? (
               <Link href={`/t/${tenantSlug}/stats`} className="hover:text-zinc-900">
                 統計

@@ -1,0 +1,3 @@
+ALTER TABLE "Post"
+ADD COLUMN "category" TEXT NOT NULL DEFAULT '授業',
+ADD COLUMN "referenceUrl" TEXT;

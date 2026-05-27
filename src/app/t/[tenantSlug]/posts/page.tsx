@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
@@ -6,6 +7,7 @@ import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { withBasePath } from "@/lib/app-base-path";
 import {
   getGradeBadgeClasses,
+  NEUTRAL_BADGE_CLASSES,
   getSubjectBadgeClasses,
   getUnitBadgeClasses,
 } from "@/lib/subject-grade-colors";
@@ -54,7 +56,7 @@ export default async function PostsPage({
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">授業実践</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            学年・教科・単元・タグ・キーワードで絞り込めます
+            AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
           </p>
         </div>
         {canCreatePost ? (
@@ -206,6 +208,7 @@ export default async function PostsPage({
             const gradeColor = getGradeBadgeClasses(post.grade);
             const subjectColor = getSubjectBadgeClasses(post.subject);
             const unitColor = getUnitBadgeClasses(post.subject);
+            const categoryColor = NEUTRAL_BADGE_CLASSES;
 
             return (
               <li key={post.id}>
@@ -217,11 +220,12 @@ export default async function PostsPage({
                     {thumbAttachment ? (
                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
                         {thumbAttachment.kind === "image" && thumbHref ? (
-                          <img
-                            src={thumbHref}
+                          <Image
+                            src={`${thumbHref}?thumb=1`}
                             alt={thumbAttachment.originalFilename}
+                            width={96}
+                            height={96}
                             className="h-full w-full object-cover"
-                            loading="lazy"
                           />
                         ) : (
                           <div className="flex h-full w-full flex-col items-center justify-center text-[11px] text-zinc-600">
@@ -262,11 +266,21 @@ export default async function PostsPage({
                           </span>
                         </span>
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${unitColor.wrapper}`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${categoryColor.wrapper}`}
                         >
-                          <span className={unitColor.label}>単元</span>
-                          <span className={unitColor.value}>{post.unit}</span>
+                          <span className={categoryColor.label}>カテゴリ</span>
+                          <span className={categoryColor.value}>
+                            {post.category ?? "授業"}
+                          </span>
                         </span>
+                        {(post as { hasCurriculumUnitOptions?: boolean }).hasCurriculumUnitOptions ? (
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${unitColor.wrapper}`}
+                          >
+                            <span className={unitColor.label}>単元</span>
+                            <span className={unitColor.value}>{post.unit}</span>
+                          </span>
+                        ) : null}
                         {post.contentItem ? (
                           <span className="text-xs text-zinc-500">
                             {post.contentItem}

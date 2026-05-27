@@ -40,7 +40,7 @@ export default async function NewPostPage({
   ]);
 
   const initialAttachments =
-    draftPost?.attachments.map((a) => ({
+    draftPost?.attachments.map((a: any) => ({
       id: a.id,
       kind: a.kind,
       originalFilename: a.originalFilename,

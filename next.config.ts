@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   basePath: APP_BASE_PATH,
   output: "standalone",
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
+  images: {
+    minimumCacheTTL: 60 * 60 * 24,
+  },
   async headers() {
     return [
       {

@@ -23,6 +23,7 @@ export const SUBJECT_OPTIONS = [
   "道徳",
   "学活",
   "総合",
+  "授業準備",
   COMMON_GRADE_SUBJECT_LABEL,
 ] as const;
 

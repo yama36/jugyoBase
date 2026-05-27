@@ -13,6 +13,7 @@ import { isS3Configured } from "@/lib/storage";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import {
   getGradeBadgeClasses,
+  NEUTRAL_BADGE_CLASSES,
   getSubjectBadgeClasses,
   getUnitBadgeClasses,
 } from "@/lib/subject-grade-colors";
@@ -56,11 +57,34 @@ export default async function PostDetailPage({
   const gradeColor = getGradeBadgeClasses(post.grade);
   const subjectColor = getSubjectBadgeClasses(post.subject);
   const unitColor = getUnitBadgeClasses(post.subject);
+  const categoryColor = NEUTRAL_BADGE_CLASSES;
+  const category = post.category ?? "授業";
+  const sectionLabels =
+    category === "業務改善"
+      ? {
+          aim: "課題・背景",
+          reflection: "効果・結果",
+          flow: "気をつける点",
+          point: "試みたこと（ツール名など）",
+        }
+      : category === "AI・ICT活用"
+        ? {
+            aim: "活用場面",
+            reflection: "よかった点・気をつけた点",
+            flow: "使ったプロンプト例",
+            point: "使用したAI・ツール名",
+          }
+        : {
+            aim: "めあて",
+            reflection: "振り返り",
+            flow: "授業の流れ",
+            point: "工夫した点",
+          };
   const contentSections = [
-    { key: "aim", title: "めあて", value: post.aim },
-    { key: "reflection", title: "振り返り", value: post.reflection },
-    { key: "flow", title: "授業の流れ", value: post.flow },
-    { key: "point", title: "工夫した点", value: post.point },
+    { key: "aim", title: sectionLabels.aim, value: post.aim },
+    { key: "reflection", title: sectionLabels.reflection, value: post.reflection },
+    { key: "flow", title: sectionLabels.flow, value: post.flow },
+    { key: "point", title: sectionLabels.point, value: post.point },
   ].filter((section) => section.value && section.value.trim().length > 0);
 
   const backTopLabel = backToMypage ? "マイページ" : "事例一覧";
@@ -153,11 +177,19 @@ export default async function PostDetailPage({
             <span className={subjectColor.value}>{post.subject}</span>
           </span>
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${unitColor.wrapper}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${categoryColor.wrapper}`}
           >
-            <span className={unitColor.label}>単元</span>
-            <span className={unitColor.value}>{post.unit}</span>
+            <span className={categoryColor.label}>カテゴリ</span>
+            <span className={categoryColor.value}>{category}</span>
           </span>
+          {post.hasCurriculumUnitOptions ? (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${unitColor.wrapper}`}
+            >
+              <span className={unitColor.label}>単元</span>
+              <span className={unitColor.value}>{post.unit}</span>
+            </span>
+          ) : null}
           {post.contentItem ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs">
               <span className="text-zinc-500">内容項目</span>
@@ -168,7 +200,7 @@ export default async function PostDetailPage({
           ) : null}
           {post.tags.length > 0 ? (
             <ul className="contents">
-              {post.tags.map((pt) => (
+              {post.tags.map((pt: any) => (
                 <li
                   key={pt.tag.id}
                   className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800"
@@ -201,6 +233,20 @@ export default async function PostDetailPage({
         </section>
       ) : null}
 
+      {post.referenceUrl?.trim() ? (
+        <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-900">参考URL</h2>
+          <a
+            href={post.referenceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 block break-all text-sm text-sky-700 underline-offset-2 hover:underline"
+          >
+            {post.referenceUrl}
+          </a>
+        </section>
+      ) : null}
+
       <section className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
           <span
@@ -217,7 +263,7 @@ export default async function PostDetailPage({
           <p className="text-sm text-zinc-600">添付はありません</p>
         ) : (
           <ul className="space-y-2">
-            {post.attachments.map((a) => {
+            {post.attachments.map((a: any) => {
               const downloadable = a.malwareScanStatus === "clean";
               const rowClass =
                 "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition";
