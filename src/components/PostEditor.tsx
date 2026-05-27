@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { updatePost } from "@/app/actions/posts";
+import { autosaveDraftPost, updatePost } from "@/app/actions/posts";
 import type { Attachment, Post, PostTag, Tag } from "@prisma/client";
 import type { CurriculumUnitOption } from "@/app/actions/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
@@ -29,6 +29,8 @@ type Props =
       tenantSlug: string;
       /** ページ表示時にサーバーが用意した空下書き（添付は保存前から可能） */
       draftPostId: string;
+      /** 自動保存済みの下書き内容（再訪時の復元用） */
+      initialDraft?: PostWithTags | null;
       curriculumUnits: CurriculumUnitOption[];
       hashtagSuggestions: string[];
       /** `MALWARE_SCAN_WEBHOOK_SECRET` 設定時 true（サーバーから渡す） */
@@ -81,7 +83,12 @@ export function PostEditor(props: Props) {
       router.push(`/t/${tenantSlug}/posts/${props.post.id}`);
     });
   }
-  const p = props.mode === "edit" ? props.post : null;
+  const p =
+    props.mode === "edit"
+      ? props.post
+      : (props.initialDraft ?? null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hashtagsInitial =
     p?.tags.map((pt) => `#${pt.tag.name}`).join(" ") ?? "";
   const [grade, setGrade] = useState<string>(p?.grade ?? "");
@@ -104,6 +111,31 @@ export function PostEditor(props: Props) {
   });
 
   const postId = props.mode === "create" ? props.draftPostId : props.post.id;
+
+  useEffect(() => {
+    if (props.mode !== "create") return;
+    const form = formRef.current;
+    if (!form) return;
+
+    const scheduleAutosave = () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = setTimeout(async () => {
+        const fd = new FormData(form);
+        const r = await autosaveDraftPost(fd);
+        if (!r.ok) {
+          toast.error(r.message, { id: "post-autosave-error" });
+        }
+      }, 2000);
+    };
+
+    form.addEventListener("input", scheduleAutosave);
+    form.addEventListener("change", scheduleAutosave);
+    return () => {
+      form.removeEventListener("input", scheduleAutosave);
+      form.removeEventListener("change", scheduleAutosave);
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [props.mode, postId]);
 
   const initialAttachments: AttachmentListItem[] =
     props.mode === "edit"
@@ -164,13 +196,19 @@ export function PostEditor(props: Props) {
           tenantSlug={tenantSlug}
           postId={postId}
           initialAttachments={initialAttachments}
+          returnFrom={props.mode === "create" ? "new" : undefined}
           storageConfigured={props.storageConfigured ?? true}
           malwareScanGate={props.malwareScanGate ?? false}
         />
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {props.mode === "create" ? (
+          <p className="text-xs text-zinc-500">
+            入力内容は自動で下書き保存されます（ポリシー同意前でも保存されます）。
+          </p>
+        ) : null}
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="tenantSlug" value={tenantSlug} />
         <input
           type="hidden"
@@ -425,10 +463,10 @@ export function PostEditor(props: Props) {
 
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            ハッシュタグ（#は不要。スペース・カンマ区切り）
+            ハッシュタグ（#は不要。スペース・カンマ・読点などで区切り）
           </label>
           <p className="mt-1 text-xs text-zinc-500">
-            入力時に # を付けなくても、保存時にハッシュタグとして扱われます。
+            スペース・カンマ（,，）・読点（、）・セミコロン・スラッシュなどで区切れます。# を付けなくても保存時にハッシュタグとして扱われます。
           </p>
           <input
             name="hashtags"

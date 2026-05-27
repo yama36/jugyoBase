@@ -161,6 +161,8 @@ async function uploadOneFile(
 export function AttachmentUploader(props: {
   tenantSlug: string;
   postId: string;
+  /** 添付表示画面の戻り先（`?from=` に付与） */
+  returnFrom?: "new";
   initialAttachments?: AttachmentListItem[];
   /** false のときアップロード不可（サーバーで isS3Configured() を渡す） */
   storageConfigured?: boolean;
@@ -319,7 +321,10 @@ export function AttachmentUploader(props: {
           <ul className="space-y-2">
             {attachments.map((a) => {
               const downloadable = a.malwareScanStatus === "clean";
-              const viewHref = `/t/${props.tenantSlug}/posts/${props.postId}/attachments/${a.id}`;
+              const viewHref =
+                props.returnFrom === "new"
+                  ? `/t/${props.tenantSlug}/posts/${props.postId}/attachments/${a.id}?from=new`
+                  : `/t/${props.tenantSlug}/posts/${props.postId}/attachments/${a.id}`;
               const downloadHref = `/t/${props.tenantSlug}/files/${a.id}`;
               const rowClass =
                 "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm";

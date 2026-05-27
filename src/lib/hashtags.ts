@@ -5,7 +5,7 @@ const MAX_TAG_LEN = 40;
 export function parseHashtagInput(raw: string | null | undefined): string[] {
   if (!raw?.trim()) return [];
   const parts = raw
-    .split(/[\s,、，]+/u)
+    .split(/[\s,、，;；|｜/／]+/u)
     .map((s) => s.replace(/^#+/, "").trim().toLowerCase())
     .filter(Boolean);
 

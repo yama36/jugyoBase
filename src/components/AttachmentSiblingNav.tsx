@@ -13,6 +13,7 @@ export function AttachmentSiblingNav(props: {
   postId: string;
   siblings: AttachmentSiblingRef[];
   currentIndex: number;
+  viewFrom?: "new";
 }) {
   const { siblings, currentIndex } = props;
   if (siblings.length <= 1) return null;
@@ -20,6 +21,7 @@ export function AttachmentSiblingNav(props: {
   const prev = currentIndex > 0 ? siblings[currentIndex - 1] : null;
   const next =
     currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : null;
+  const fromQuery = props.viewFrom === "new" ? "?from=new" : "";
   const base = `/t/${props.tenantSlug}/posts/${props.postId}/attachments`;
 
   const navBtn =
@@ -33,7 +35,7 @@ export function AttachmentSiblingNav(props: {
       className="flex flex-wrap items-stretch justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-3"
     >
       {prev ? (
-        <Link href={`${base}/${prev.id}`} className={enabled}>
+        <Link href={`${base}/${prev.id}${fromQuery}`} className={enabled}>
           <span aria-hidden="true" className="shrink-0 text-zinc-500">
             ←
           </span>
@@ -59,7 +61,7 @@ export function AttachmentSiblingNav(props: {
       </p>
 
       {next ? (
-        <Link href={`${base}/${next.id}`} className={`${enabled} ml-auto text-right`}>
+        <Link href={`${base}/${next.id}${fromQuery}`} className={`${enabled} ml-auto text-right`}>
           <span className="min-w-0 truncate">
             <span className="block text-[10px] font-normal text-zinc-500">次へ</span>
             <span className="block truncate">{next.originalFilename}</span>

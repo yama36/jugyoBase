@@ -14,20 +14,28 @@ const KIND_LABEL = {
 
 export default async function AttachmentViewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantSlug: string; postId: string; attachmentId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { tenantSlug, postId, attachmentId } = await params;
+  const sp = await searchParams;
+  const fromNew = sp.from === "new";
+
+  const backHref = fromNew
+    ? `/t/${tenantSlug}/posts/new`
+    : `/t/${tenantSlug}/posts/${postId}`;
+  const backLabel = fromNew ? "新規投稿に戻る" : "投稿に戻る";
+  const breadcrumbParentHref = backHref;
+  const breadcrumbParentLabel = fromNew ? "新規投稿" : null;
 
   if (!isS3Configured()) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
         ファイルストレージが未設定のため、添付を表示できません。
-        <Link
-          href={`/t/${tenantSlug}/posts/${postId}`}
-          className="mt-4 block text-sky-700 hover:underline"
-        >
-          投稿に戻る
+        <Link href={backHref} className="mt-4 block text-sky-700 hover:underline">
+          {backLabel}
         </Link>
       </div>
     );
@@ -39,18 +47,14 @@ export default async function AttachmentViewPage({
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
         {data.message}
-        <Link
-          href={`/t/${tenantSlug}/posts/${postId}`}
-          className="mt-4 block text-sky-800 hover:underline"
-        >
-          投稿に戻る
+        <Link href={backHref} className="mt-4 block text-sky-800 hover:underline">
+          {backLabel}
         </Link>
       </div>
     );
   }
 
   const { attachment, postTitle, siblings } = data;
-  const postHref = `/t/${tenantSlug}/posts/${postId}`;
   const downloadHref = `/t/${tenantSlug}/files/${attachmentId}`;
 
   return (
@@ -65,8 +69,11 @@ export default async function AttachmentViewPage({
         <span aria-hidden="true" className="text-zinc-300">
           /
         </span>
-        <Link href={postHref} className="max-w-[40ch] truncate hover:text-zinc-800 hover:underline">
-          {postTitle}
+        <Link
+          href={breadcrumbParentHref}
+          className="max-w-[40ch] truncate hover:text-zinc-800 hover:underline"
+        >
+          {breadcrumbParentLabel ?? postTitle}
         </Link>
         <span aria-hidden="true" className="text-zinc-300">
           /
@@ -88,10 +95,10 @@ export default async function AttachmentViewPage({
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Link
-            href={postHref}
+            href={backHref}
             className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
           >
-            投稿に戻る
+            {backLabel}
           </Link>
           <Link
             href={downloadHref}
@@ -107,6 +114,7 @@ export default async function AttachmentViewPage({
         postId={postId}
         siblings={siblings.items}
         currentIndex={siblings.currentIndex}
+        viewFrom={fromNew ? "new" : undefined}
       />
 
       <AttachmentViewer

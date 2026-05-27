@@ -34,6 +34,7 @@ export default async function MyPage({
       (p as any).isPublished === false &&
       !isNewPostShellDraft({
         isPublished: p.isPublished,
+        category: (p as { category?: string }).category,
         title: p.title,
         grade: p.grade,
         subject: p.subject,
@@ -43,6 +44,7 @@ export default async function MyPage({
         reflection: p.reflection,
         point: p.point,
         flow: p.flow,
+        referenceUrl: (p as { referenceUrl?: string | null }).referenceUrl,
       }),
   );
 

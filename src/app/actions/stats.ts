@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function getStats(tenantId: string) {
   return withTenantRls(tenantId, async (tx) => {
-    const [totals, bySubject, byGrade, byMonth, byAuthor, topTags] =
+    const [totals, bySubject, bySubjectDetail, byGrade, byMonth, byAuthor, topTags] =
       await Promise.all([
         tx.$queryRaw<
           { total: bigint; this_month: bigint; active_authors: bigint }[]
@@ -28,6 +28,26 @@ export async function getStats(tenantId: string) {
           WHERE "isPublished" = true
           GROUP BY subject
           ORDER BY count DESC
+        `,
+
+        tx.$queryRaw<
+          {
+            subject: string;
+            count: bigint;
+            this_month: bigint;
+            author_count: bigint;
+          }[]
+        >`
+          SELECT
+            subject,
+            COUNT(*) AS count,
+            COUNT(*) FILTER (
+              WHERE DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', NOW())
+            ) AS this_month,
+            COUNT(DISTINCT "authorId") AS author_count
+          FROM "Post"
+          WHERE "isPublished" = true
+          GROUP BY subject
         `,
 
         tx.$queryRaw<{ grade: string; count: bigint }[]>`
@@ -85,6 +105,12 @@ export async function getStats(tenantId: string) {
       bySubject: bySubject.map((r) => ({
         subject: r.subject,
         count: Number(r.count),
+      })),
+      bySubjectDetail: bySubjectDetail.map((r) => ({
+        subject: r.subject,
+        count: Number(r.count),
+        thisMonth: Number(r.this_month),
+        authorCount: Number(r.author_count),
       })),
       byGrade: byGrade.map((r) => ({
         grade: r.grade,

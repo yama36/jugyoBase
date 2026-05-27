@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { Readable } from "node:stream";
+import sharp from "sharp";
 import { getAttachmentDownloadUrl, streamAttachmentObject } from "@/app/actions/posts";
+
+async function readableToBuffer(body: import("stream").Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
 
 export async function GET(
   req: Request,
@@ -22,8 +31,32 @@ export async function GET(
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }
-    const webStream = Readable.toWeb(streamed.body) as ReadableStream<Uint8Array>;
-    return new NextResponse(webStream, {
+
+    const input = await readableToBuffer(streamed.body);
+
+    if (streamed.kind === "image") {
+      try {
+        const resized = await sharp(input)
+          .resize({ width: 192, withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+        return new NextResponse(new Uint8Array(resized), {
+          headers: {
+            "Content-Type": "image/webp",
+            "Cache-Control": "private, max-age=31536000, immutable",
+          },
+        });
+      } catch {
+        return new NextResponse(new Uint8Array(input), {
+          headers: {
+            "Content-Type": streamed.contentType,
+            "Cache-Control": "private, max-age=31536000, immutable",
+          },
+        });
+      }
+    }
+
+    return new NextResponse(new Uint8Array(input), {
       headers: {
         "Content-Type": streamed.contentType,
         "Cache-Control": "private, max-age=31536000, immutable",

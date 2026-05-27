@@ -75,6 +75,34 @@ const postFields = z
     }
   });
 
+const autosaveDraftFields = z.object({
+  tenantSlug: z.string().min(1),
+  postId: z.string().min(1),
+  category: z.enum(["授業", "業務改善", "AI・ICT活用"]),
+  title: z.string().max(200).optional().nullable(),
+  grade: z.string().max(80),
+  subject: z.string().max(80),
+  unit: z.string().max(500),
+  contentItem: z.string().max(500).optional().nullable(),
+  aim: z.string().max(5000).optional().nullable(),
+  reflection: z.string().max(20000).optional().nullable(),
+  point: z.string().max(20000).optional().nullable(),
+  flow: z.string().max(20000).optional().nullable(),
+  referenceUrl: z.string().max(2000).optional().nullable(),
+  hashtagsRaw: z.string().max(2000).optional().nullable(),
+});
+
+function normalizeAutosaveReferenceUrl(raw: unknown): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  try {
+    new URL(s);
+    return s;
+  } catch {
+    return null;
+  }
+}
+
 export type PostSearchParams = {
   q?: string;
   grade?: string;
@@ -383,6 +411,20 @@ export async function createShellDraftPost(
       return { ok: true, postId: reused.id };
     }
 
+    const latestDraft = await withTenantRls(tenantId, (tx) =>
+      tx.post.findFirst({
+        where: {
+          authorId: session.user.id,
+          isPublished: false,
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true },
+      }),
+    );
+    if (latestDraft) {
+      return { ok: true, postId: latestDraft.id };
+    }
+
     const post = await withTenantRls(tenantId, async (tx) =>
       tx.post.create({
         data: {
@@ -405,6 +447,101 @@ export async function createShellDraftPost(
     return { ok: true, postId: post.id };
   } catch {
     return { ok: false, message: "下書きの準備に失敗しました" };
+  }
+}
+
+export async function autosaveDraftPost(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const session = await auth();
+  if (!session?.user?.tenantId) {
+    return { ok: false, message: "未ログインです" };
+  }
+  if (session.user.role === "readonly") {
+    return { ok: false, message: "閲覧専用アカウントは投稿できません" };
+  }
+
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return { ok: false, message: "投稿 ID が不正です" };
+
+  const parsed = autosaveDraftFields.safeParse({
+    tenantSlug: formData.get("tenantSlug"),
+    postId,
+    category: formData.get("category") || "授業",
+    title: formData.get("title") || null,
+    grade: String(formData.get("grade") ?? ""),
+    subject: String(formData.get("subject") ?? ""),
+    unit: String(formData.get("unit") ?? ""),
+    contentItem: formData.get("contentItem") || null,
+    aim: formData.get("aim") || null,
+    reflection: formData.get("reflection") || null,
+    point: formData.get("point"),
+    flow: formData.get("flow"),
+    referenceUrl: formData.get("referenceUrl") || null,
+    hashtagsRaw: formData.get("hashtags") || null,
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues.map((i) => i.message).join(" / "),
+    };
+  }
+
+  const data = { ...parsed.data, unit: parsed.data.unit.trim() };
+  if (!canAccessTenantRoute(session, data.tenantSlug)) {
+    return { ok: false, message: "テナントが一致しません" };
+  }
+
+  const tenantId = session.user.tenantId;
+  const tenantSlug = data.tenantSlug;
+
+  const existing = await getPost(tenantId, postId);
+  if (!existing || existing.authorId !== session.user.id) {
+    return { ok: false, message: "保存する権限がありません" };
+  }
+
+  const tagNames = parseHashtagInput(data.hashtagsRaw);
+  const referenceUrl = normalizeAutosaveReferenceUrl(data.referenceUrl);
+  const searchText = buildPostSearchText({
+    title: data.title,
+    grade: data.grade,
+    subject: data.subject,
+    unit: data.unit,
+    contentItem: data.contentItem,
+    aim: data.aim?.trim() ?? "",
+    reflection: data.reflection?.trim() || null,
+    point: data.point?.trim() || null,
+    flow: data.flow?.trim() || null,
+    tagNames,
+  });
+
+  try {
+    await withTenantRls(tenantId, async (tx) => {
+      await tx.post.update({
+        where: { id: postId },
+        data: {
+          title: data.title || null,
+          category: data.category,
+          grade: data.grade,
+          subject: data.subject,
+          unit: data.unit,
+          contentItem: data.contentItem || null,
+          aim: data.aim?.trim() ?? "",
+          reflection: data.reflection?.trim() || null,
+          point: data.point?.trim() || null,
+          flow: data.flow?.trim() || null,
+          referenceUrl,
+          searchText,
+        } as any,
+      });
+      await syncPostTags(tx, tenantId, postId, tagNames);
+    });
+
+    revalidatePath(`/t/${tenantSlug}/posts/new`);
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "自動保存に失敗しました" };
   }
 }
 

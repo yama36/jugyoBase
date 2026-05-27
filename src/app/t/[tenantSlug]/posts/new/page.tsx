@@ -57,6 +57,7 @@ export default async function NewPostPage({
         mode="create"
         tenantSlug={tenantSlug}
         draftPostId={draft.postId}
+        initialDraft={draftPost}
         initialAttachments={initialAttachments}
         curriculumUnits={curriculumUnits}
         hashtagSuggestions={searchOptions.tags}

@@ -221,6 +221,7 @@ export default async function PostsPage({
                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
                         {thumbAttachment.kind === "image" && thumbHref ? (
                           <Image
+                            unoptimized
                             src={`${thumbHref}?thumb=1`}
                             alt={thumbAttachment.originalFilename}
                             width={96}
