@@ -314,6 +314,7 @@ export default async function PostsPage({
                       ) : null}
                       <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
                         <span>♥ {(post as any)._count?.likes ?? 0}</span>
+                        <span>試した {(post as any)._count?.tried ?? 0}</span>
                         <span>💬 {(post as any)._count?.comments ?? 0}</span>
                         {thumbAttachment ? (
                           <span className="text-zinc-500">

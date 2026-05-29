@@ -23,6 +23,7 @@ enum UserRole {
 enum NotificationType {
   comment
   like
+  tried
   mention
 }
 
@@ -66,6 +67,7 @@ model User {
   sessions      Session[]
   comments      Comment[]
   likes         PostLike[]
+  tried         PostTried[]
   bookmarks     Bookmark[]
   notifications Notification[]
 
@@ -186,6 +188,7 @@ model Post {
   attachments    Attachment[]
   comments       Comment[]
   likes          PostLike[]
+  tried          PostTried[]
   bookmarks      Bookmark[]
   notifications  Notification[]
 
@@ -250,6 +253,18 @@ model Comment {
 }
 
 model PostLike {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+/// 授業実践をクラスで試した（実践した）記録
+model PostTried {
   postId    String
   userId    String
   createdAt DateTime @default(now())

@@ -193,6 +193,7 @@ function PostListMock() {
                 </p>
                 <div className="mt-1 flex items-center gap-3 text-[10px] text-zinc-400">
                   <span>♥ {post.likes}</span>
+                  <span>試した {post.tried}</span>
                   <span>💬 {post.comments}</span>
                 </div>
               </div>
@@ -214,6 +215,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
   unit: string;
   tags: string[];
   likes: number;
+  tried: number;
   comments: number;
 }> = [
   {
@@ -226,6 +228,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     unit: "連立方程式",
     tags: ["協同学習", "ICT"],
     likes: 4,
+    tried: 2,
     comments: 2,
   },
   {
@@ -238,6 +241,7 @@ const SAMPLE_POSTS: ReadonlyArray<{
     unit: "走れメロス",
     tags: ["読解", "対話"],
     likes: 7,
+    tried: 1,
     comments: 1,
   },
 ];

@@ -214,7 +214,7 @@ export async function listPosts(
             malwareScanStatus: true,
           },
         },
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, tried: true, comments: true } },
       } as any,
     });
 

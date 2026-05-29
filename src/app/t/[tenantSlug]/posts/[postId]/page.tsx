@@ -4,9 +4,11 @@ import { auth } from "@/auth";
 import { getPost } from "@/app/actions/posts";
 import { listComments } from "@/app/actions/comments";
 import { getPostLikeInfo } from "@/app/actions/likes";
+import { getPostTriedInfo } from "@/app/actions/tried";
 import { getBookmarkStatus } from "@/app/actions/bookmarks";
 import { DeletePostButton } from "@/components/DeletePostButton";
 import { LikeButton } from "@/components/LikeButton";
+import { TriedButton } from "@/components/TriedButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
@@ -38,10 +40,11 @@ export default async function PostDetailPage({
     : `/t/${tenantSlug}/posts`;
 
   const userId = session?.user?.id ?? null;
-  const [post, comments, likeInfo, bookmarked] = await Promise.all([
+  const [post, comments, likeInfo, triedInfo, bookmarked] = await Promise.all([
     getPost(tenantId, postId),
     listComments(tenantId, postId),
     getPostLikeInfo(tenantId, postId, userId),
+    getPostTriedInfo(tenantId, postId, userId),
     getBookmarkStatus(postId, userId),
   ]);
   if (!post) notFound();
@@ -52,6 +55,7 @@ export default async function PostDetailPage({
     sameTenantAsViewer &&
     (post.authorId === session.user.id || session.user.role === "admin");
   const canLike = sameTenantAsViewer && session.user.role !== "readonly";
+  const canTry = canLike;
   const canBookmark = sameTenantAsViewer;
 
   const gradeColor = getGradeBadgeClasses(post.grade);
@@ -89,7 +93,7 @@ export default async function PostDetailPage({
 
   const backTopLabel = backToMypage ? "マイページ" : "一覧";
   const titleText = post.title?.trim() || "（無題）";
-  const hasMobileActions = canLike || canBookmark || canEdit;
+  const hasMobileActions = canLike || canTry || canBookmark || canEdit;
   const hasContent = contentSections.length > 0 || post.referenceUrl?.trim();
 
   return (
@@ -130,6 +134,13 @@ export default async function PostDetailPage({
               initialLiked={likeInfo.liked}
               initialCount={likeInfo.count}
               canLike={canLike}
+            />
+            <TriedButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialTried={triedInfo.tried}
+              initialCount={triedInfo.count}
+              canTry={canTry}
             />
             <BookmarkButton
               tenantSlug={tenantSlug}
@@ -375,6 +386,13 @@ export default async function PostDetailPage({
               initialLiked={likeInfo.liked}
               initialCount={likeInfo.count}
               canLike={canLike}
+            />
+            <TriedButton
+              tenantSlug={tenantSlug}
+              postId={postId}
+              initialTried={triedInfo.tried}
+              initialCount={triedInfo.count}
+              canTry={canTry}
             />
             <BookmarkButton
               tenantSlug={tenantSlug}

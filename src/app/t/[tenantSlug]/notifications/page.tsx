@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 const TYPE_LABEL: Record<string, string> = {
   comment: "がコメントしました",
   like: "がいいねしました",
+  tried: "が試しました",
   mention: "がメンションしました",
 };
 
@@ -48,7 +49,7 @@ export default async function NotificationsPage({
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">通知</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            コメント・いいねの通知が届きます
+            コメント・いいね・試したの通知が届きます
           </p>
         </div>
         {hasUnread ? (
