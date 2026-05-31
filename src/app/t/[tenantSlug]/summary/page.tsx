@@ -6,6 +6,7 @@ import { getStats } from "@/app/actions/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
+import { SchoolTreeGrowth } from "@/components/SchoolTreeGrowth";
 
 function BarChart({
   data,
@@ -305,6 +306,8 @@ export default async function SubjectSummaryPage({
           いま校内でどの教科に知見が集まっているかが一目でわかります。まだ少ない教科こそ、あなたの1件が次のヒントになります。
         </p>
       </div>
+
+      <SchoolTreeGrowth total={stats.totals.total} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard label="累計投稿数" value={stats.totals.total} unit="件" />

@@ -25,6 +25,130 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(110vh)  rotate(720deg); opacity: 0; }
+}
+.animate-confetti {
+  animation: confetti-fall linear forwards;
+}
+
+@keyframes tree-grow {
+  0% {
+    transform: translateY(10px) scale(0.82);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(-3px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-tree-grow {
+  animation: tree-grow 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 50% 90%;
+}
+
+@keyframes stage-badge-pop {
+  0% { transform: scale(0.88); opacity: 0; }
+  65% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-stage-badge {
+  animation: stage-badge-pop 420ms ease-out;
+}
+
+@keyframes floating-leaf {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(18px, 34px, 0) rotate(160deg);
+    opacity: 0;
+  }
+}
+
+.animate-floating-leaf {
+  animation: floating-leaf ease-in-out infinite;
+}
+
+@keyframes progress-shine {
+  0% { filter: brightness(1); }
+  45% { filter: brightness(1.18); }
+  100% { filter: brightness(1); }
+}
+
+.animate-progress-shine {
+  animation: progress-shine 2.4s ease-in-out infinite;
+}
+
+@keyframes tree-idle {
+  0%, 100% {
+    transform: rotate(-0.8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(0.8deg) translateY(-1px);
+  }
+}
+
+.animate-tree-idle {
+  animation: tree-idle 4.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+
+@keyframes bird-flutter {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-1px) scaleY(0.72);
+  }
+}
+
+.animate-bird-flutter {
+  animation: bird-flutter 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes village-light {
+  0%, 100% {
+    opacity: 0.72;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.22);
+  }
+}
+
+.animate-village-light {
+  animation: village-light 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-confetti,
+  .animate-tree-grow,
+  .animate-stage-badge,
+  .animate-floating-leaf,
+  .animate-progress-shine,
+  .animate-tree-idle,
+  .animate-bird-flutter,
+  .animate-village-light {
+    animation: none;
+  }
+}
+
 @layer base {
   a[href] {
     cursor: pointer;
