@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "jugyoBase — 授業実践の共有",
-  description: "学校単位のクローズドな授業実践共有（MVP）",
+  title: "jugyoBase — 事例一覧",
+  description: "学校単位のクローズドな授業事例の共有（MVP）",
   robots: {
     index: false,
     follow: false,

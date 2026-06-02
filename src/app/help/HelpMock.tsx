@@ -122,16 +122,26 @@ function SchoolListMock() {
 function PostListMock() {
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-zinc-900">授業実践</p>
-          <p className="text-[11px] text-zinc-500">
-            AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
+      <div className="space-y-0">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-zinc-900">事例一覧</p>
+            <p className="text-[11px] text-zinc-500">
+              AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
+            </p>
+          </div>
+          <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
+            新規投稿
+          </span>
+        </div>
+        <div className="mt-3 rounded-lg border border-sky-200 bg-linear-to-br from-sky-50 to-white p-3 shadow-sm ring-1 ring-sky-100/80">
+          <span className="flex w-full items-center justify-center rounded-md bg-sky-600 px-3 py-1.5 text-[11px] font-semibold text-white sm:inline-flex sm:w-auto sm:bg-transparent sm:px-0 sm:py-0 sm:text-sky-800">
+            教科別の共有マップを見る →
+          </span>
+          <p className="mt-1.5 text-center text-[10px] text-zinc-500 sm:text-left">
+            教科ごとの投稿数と単元マップを確認できます
           </p>
         </div>
-        <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
-          新規投稿
-        </span>
       </div>
 
       <div className="rounded-lg border border-zinc-200 bg-white">

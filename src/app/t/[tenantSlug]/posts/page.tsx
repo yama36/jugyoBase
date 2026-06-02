@@ -11,6 +11,7 @@ import {
   getSubjectBadgeClasses,
   getUnitBadgeClasses,
 } from "@/lib/subject-grade-colors";
+import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
 
 export default async function PostsPage({
   params,
@@ -54,21 +55,24 @@ export default async function PostsPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-900">授業実践</h1>
-          <p className="mt-1 text-sm text-zinc-600">
-            AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
-          </p>
+      <div className="space-y-0">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-semibold text-zinc-900">事例一覧</h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              AIを特別なものにせず、日々の授業準備・実践で使い、校内で知見を共有していきましょう。
+            </p>
+          </div>
+          {canCreatePost ? (
+            <Link
+              href={`/t/${tenantSlug}/posts/new`}
+              className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              新規投稿
+            </Link>
+          ) : null}
         </div>
-        {canCreatePost ? (
-          <Link
-            href={`/t/${tenantSlug}/posts/new`}
-            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            新規投稿
-          </Link>
-        ) : null}
+        <SubjectSummaryMapLinkCard tenantSlug={tenantSlug} />
       </div>
 
       <details
