@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { getTenantSettings, submitTenantSettingsForm } from "@/app/actions/admin";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "elementary", label: "小学校" },
@@ -53,17 +53,7 @@ export default async function AdminSettingsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">管理</h1>
-        <nav className="mt-2 flex gap-4 text-sm">
-          <Link href={`/t/${tenantSlug}/admin/users`} className="text-zinc-500 hover:text-zinc-800">
-            ユーザー管理
-          </Link>
-          <Link href={`/t/${tenantSlug}/admin/curriculum`} className="text-zinc-500 hover:text-zinc-800">
-            単元マスタ
-          </Link>
-          <span className="font-medium text-zinc-900 underline underline-offset-4">
-            学校設定
-          </span>
-        </nav>
+        <AdminNav tenantSlug={tenantSlug} active="settings" />
       </div>
 
       <form

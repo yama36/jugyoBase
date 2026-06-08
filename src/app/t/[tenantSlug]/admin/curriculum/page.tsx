@@ -8,6 +8,7 @@ import {
   submitToggleCurriculumUnitForm,
 } from "@/app/actions/admin";
 import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 const SCHOOL_TYPE_LABELS: Record<string, string> = {
   junior_high: "中学校",
@@ -51,23 +52,7 @@ export default async function AdminCurriculumPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">管理</h1>
-        <nav className="mt-2 flex gap-4 text-sm">
-          <Link
-            href={`/t/${tenantSlug}/admin/users`}
-            className="text-zinc-500 hover:text-zinc-800"
-          >
-            ユーザー管理
-          </Link>
-          <span className="font-medium text-zinc-900 underline underline-offset-4">
-            単元マスタ
-          </span>
-          <Link
-            href={`/t/${tenantSlug}/admin/settings`}
-            className="text-zinc-500 hover:text-zinc-800"
-          >
-            学校設定
-          </Link>
-        </nav>
+        <AdminNav tenantSlug={tenantSlug} active="curriculum" />
       </div>
 
       {/* 追加フォーム */}

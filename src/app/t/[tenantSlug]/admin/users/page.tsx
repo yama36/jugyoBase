@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import Link from "next/link";
 import { auth } from "@/auth";
 import { listTenantUsers, submitAddUserForm, submitUpdateUserRoleForm } from "@/app/actions/admin";
 import { RemoveUserButton } from "@/components/RemoveUserButton";
+import { AdminNav } from "@/components/admin/AdminNav";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "管理者",
@@ -45,23 +45,7 @@ export default async function AdminUsersPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">管理</h1>
-        <nav className="mt-2 flex gap-4 text-sm">
-          <span className="font-medium text-zinc-900 underline underline-offset-4">
-            ユーザー管理
-          </span>
-          <Link
-            href={`/t/${tenantSlug}/admin/curriculum`}
-            className="text-zinc-500 hover:text-zinc-800"
-          >
-            単元マスタ
-          </Link>
-          <Link
-            href={`/t/${tenantSlug}/admin/settings`}
-            className="text-zinc-500 hover:text-zinc-800"
-          >
-            学校設定
-          </Link>
-        </nav>
+        <AdminNav tenantSlug={tenantSlug} active="users" />
       </div>
 
       {/* 招待フォーム */}

@@ -177,6 +177,16 @@ model Post {
   searchText       String          @default("") @db.Text
   /// 参考URL（任意）
   referenceUrl     String?
+  /// AI/ICTを活用した授業として振り返り3項目を記録するか
+  isAiIctLesson    Boolean         @default(false)
+  /// 振り返り1: 工夫できた・うまく使えたと感じる力
+  transferStrength String?         @db.Text
+  /// 振り返り2: その力を身につけた場面（複数可）
+  transferSkillOrigins String[]    @default([])
+  /// 振り返り3: なぜこの授業でその力・AI活用を使おうと思ったか
+  transferMotivation String?       @db.Text
+  /// 振り返り2補足: 場面で「その他」を選んだときの自由記述
+  transferSkillOriginOther String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

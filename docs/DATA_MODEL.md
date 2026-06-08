@@ -35,8 +35,20 @@ erDiagram
 ### `Post`（授業実践）
 
 必須: `grade`, `subject`, `unit`, `aim`  
-任意: `title`, `reflection`, `point`, `flow`  
-`searchText`: 検索用にアプリが結合更新するテキスト（`pg_trgm` GIN インデックス）。
+任意: `title`, `reflection`, `point`, `flow`, `referenceUrl`  
+`category`: 授業 / 業務改善 / AI・ICT活用（デフォルト 授業）
+
+**AI/ICT活用授業アンケート**（カテゴリ「授業」かつ `isAiIctLesson=true` のときのみ保存。公開投稿時は3項目必須。他教員には非公開）:
+
+| 列 | 説明 |
+| --- | --- |
+| `isAiIctLesson` | AI/ICTを活用した授業としてアンケートに回答したか |
+| `transferStrength` | 工夫できた・うまく使えたと感じる力 |
+| `transferSkillOrigins` | 力を身につけた場面（複数可） |
+| `transferSkillOriginOther` | 場面で「その他」を選んだときの補足 |
+| `transferMotivation` | なぜこの授業でその力・AI活用を使おうと思ったか |
+
+`searchText`: 検索用にアプリが結合更新するテキスト（`pg_trgm` GIN インデックス）。アンケート回答は `searchText` に含めない。
 
 ### `Tag` / `PostTag`
 

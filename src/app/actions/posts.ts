@@ -25,6 +25,76 @@ import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { newPostShellDraftWhere } from "@/lib/post-shell-draft";
 import { isCommonGradeOrSubjectSelection } from "@/lib/subject-grade-options";
+import {
+  isAiIctLessonChecked,
+  parseTransferSkillOrigins,
+  TRANSFER_SKILL_ORIGIN_OPTIONS,
+} from "@/lib/transfer-reflection";
+
+const CLASSROOM_CATEGORY = "授業" as const;
+
+const transferReflectionFields = {
+  isAiIctLesson: z.boolean(),
+  transferStrength: z.string().max(5000).optional().nullable(),
+  transferSkillOrigins: z.array(z.enum(TRANSFER_SKILL_ORIGIN_OPTIONS)),
+  transferSkillOriginOther: z.string().max(500).optional().nullable(),
+  transferMotivation: z.string().max(5000).optional().nullable(),
+};
+
+function refineTransferReflection(
+  data: {
+    category: string;
+    isAiIctLesson: boolean;
+    transferStrength?: string | null;
+    transferSkillOrigins: string[];
+    transferSkillOriginOther?: string | null;
+    transferMotivation?: string | null;
+  },
+  ctx: z.RefinementCtx,
+  options: { requireWhenAiLesson: boolean },
+) {
+  if (data.isAiIctLesson && data.category !== CLASSROOM_CATEGORY) {
+    ctx.addIssue({
+      code: "custom",
+      message: "AI/ICT活用授業の振り返りは「授業」カテゴリでのみ利用できます",
+      path: ["isAiIctLesson"],
+    });
+    return;
+  }
+  if (!data.isAiIctLesson || !options.requireWhenAiLesson) return;
+
+  if (!data.transferStrength?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "工夫できた・うまく使えたと感じる力を入力してください",
+      path: ["transferStrength"],
+    });
+  }
+  if (data.transferSkillOrigins.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      message: "力を身につけた場面を1つ以上選択してください",
+      path: ["transferSkillOrigins"],
+    });
+  }
+  if (
+    data.transferSkillOrigins.includes("その他") &&
+    !data.transferSkillOriginOther?.trim()
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "「その他」を選んだ場合は補足を入力してください",
+      path: ["transferSkillOriginOther"],
+    });
+  }
+  if (!data.transferMotivation?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "なぜこの授業でその力・AI活用を使おうと思ったかを入力してください",
+      path: ["transferMotivation"],
+    });
+  }
+}
 
 const postFields = z
   .object({
@@ -41,6 +111,8 @@ const postFields = z
     flow: z.string().max(20000).optional().nullable(),
     referenceUrl: z.string().url().max(2000).optional().nullable(),
     hashtagsRaw: z.string().max(2000).optional().nullable(),
+    ...transferReflectionFields,
+    isDraft: z.boolean(),
   })
   .superRefine((data, ctx) => {
     const isClassroomCategory = data.category === "授業";
@@ -59,20 +131,21 @@ const postFields = z
       });
     }
     if (
-      !isClassroomCategory ||
-      !data.grade.trim() ||
-      !data.subject.trim() ||
-      isCommonGradeOrSubjectSelection(data.grade, data.subject)
+      isClassroomCategory &&
+      data.grade.trim() &&
+      data.subject.trim() &&
+      !isCommonGradeOrSubjectSelection(data.grade, data.subject) &&
+      !data.unit.trim()
     ) {
-      return;
-    }
-    if (!data.unit.trim()) {
       ctx.addIssue({
         code: "custom",
         message: "単元を入力してください",
         path: ["unit"],
       });
     }
+    refineTransferReflection(data, ctx, {
+      requireWhenAiLesson: !data.isDraft,
+    });
   });
 
 const autosaveDraftFields = z.object({
@@ -90,7 +163,74 @@ const autosaveDraftFields = z.object({
   flow: z.string().max(20000).optional().nullable(),
   referenceUrl: z.string().max(2000).optional().nullable(),
   hashtagsRaw: z.string().max(2000).optional().nullable(),
+  ...transferReflectionFields,
 });
+
+function parsePostFormInput(formData: FormData, options?: { isDraft?: boolean }) {
+  const isDraft =
+    options?.isDraft ?? formData.get("isDraft") === "on";
+  const category = String(formData.get("category") ?? CLASSROOM_CATEGORY);
+  const isClassroomCategory = category === CLASSROOM_CATEGORY;
+  const isAiIctLesson =
+    isClassroomCategory && isAiIctLessonChecked(formData.get("isAiIctLesson"));
+  const transferSkillOrigins = isAiIctLesson
+    ? parseTransferSkillOrigins(formData.getAll("transferSkillOrigins"))
+    : [];
+  const includesOther = transferSkillOrigins.includes("その他");
+
+  return {
+    tenantSlug: formData.get("tenantSlug"),
+    category,
+    title: formData.get("title") || null,
+    grade: String(formData.get("grade") ?? ""),
+    subject: String(formData.get("subject") ?? ""),
+    unit: String(formData.get("unit") ?? ""),
+    contentItem: formData.get("contentItem") || null,
+    aim: formData.get("aim") || null,
+    reflection: formData.get("reflection") || null,
+    point: formData.get("point"),
+    flow: formData.get("flow"),
+    referenceUrl: formData.get("referenceUrl") || null,
+    hashtagsRaw: formData.get("hashtags") || null,
+    isAiIctLesson,
+    transferStrength: isAiIctLesson ? formData.get("transferStrength") || null : null,
+    transferSkillOrigins,
+    transferSkillOriginOther:
+      isAiIctLesson && includesOther
+        ? formData.get("transferSkillOriginOther") || null
+        : null,
+    transferMotivation: isAiIctLesson ? formData.get("transferMotivation") || null : null,
+    isDraft,
+  };
+}
+
+function transferReflectionDbData(data: {
+  isAiIctLesson: boolean;
+  transferStrength?: string | null;
+  transferSkillOrigins: string[];
+  transferSkillOriginOther?: string | null;
+  transferMotivation?: string | null;
+}) {
+  if (!data.isAiIctLesson) {
+    return {
+      isAiIctLesson: false,
+      transferStrength: null,
+      transferSkillOrigins: [],
+      transferSkillOriginOther: null,
+      transferMotivation: null,
+    };
+  }
+  const includesOther = data.transferSkillOrigins.includes("その他");
+  return {
+    isAiIctLesson: true,
+    transferStrength: data.transferStrength?.trim() || null,
+    transferSkillOrigins: data.transferSkillOrigins,
+    transferSkillOriginOther: includesOther
+      ? data.transferSkillOriginOther?.trim() || null
+      : null,
+    transferMotivation: data.transferMotivation?.trim() || null,
+  };
+}
 
 function normalizeAutosaveReferenceUrl(raw: unknown): string | null {
   const s = String(raw ?? "").trim();
@@ -467,20 +607,9 @@ export async function autosaveDraftPost(
   if (!postId) return { ok: false, message: "投稿 ID が不正です" };
 
   const parsed = autosaveDraftFields.safeParse({
-    tenantSlug: formData.get("tenantSlug"),
+    ...parsePostFormInput(formData, { isDraft: true }),
     postId,
     category: formData.get("category") || "授業",
-    title: formData.get("title") || null,
-    grade: String(formData.get("grade") ?? ""),
-    subject: String(formData.get("subject") ?? ""),
-    unit: String(formData.get("unit") ?? ""),
-    contentItem: formData.get("contentItem") || null,
-    aim: formData.get("aim") || null,
-    reflection: formData.get("reflection") || null,
-    point: formData.get("point"),
-    flow: formData.get("flow"),
-    referenceUrl: formData.get("referenceUrl") || null,
-    hashtagsRaw: formData.get("hashtags") || null,
   });
 
   if (!parsed.success) {
@@ -535,6 +664,7 @@ export async function autosaveDraftPost(
           flow: data.flow?.trim() || null,
           referenceUrl,
           searchText,
+          ...transferReflectionDbData(data),
         } as any,
       });
       await syncPostTags(tx, tenantId, postId, tagNames);
@@ -563,21 +693,7 @@ export async function createPost(
     return { ok: false, message: "投稿ポリシーへの同意が必要です" };
   }
 
-  const parsed = postFields.safeParse({
-    tenantSlug: formData.get("tenantSlug"),
-    category: formData.get("category"),
-    title: formData.get("title") || null,
-    grade: String(formData.get("grade") ?? ""),
-    subject: String(formData.get("subject") ?? ""),
-    unit: String(formData.get("unit") ?? ""),
-    contentItem: formData.get("contentItem") || null,
-    aim: formData.get("aim") || null,
-    reflection: formData.get("reflection") || null,
-    point: formData.get("point"),
-    flow: formData.get("flow"),
-    referenceUrl: formData.get("referenceUrl") || null,
-    hashtagsRaw: formData.get("hashtags") || null,
-  });
+  const parsed = postFields.safeParse(parsePostFormInput(formData));
 
   if (!parsed.success) {
     return {
@@ -617,7 +733,7 @@ export async function createPost(
       });
     } catch {}
 
-    const isDraft = formData.get("isDraft") === "on";
+    const isDraft = data.isDraft;
 
     const post = await withTenantRls(tenantId, async (tx) => {
       const p = await tx.post.create({
@@ -637,6 +753,7 @@ export async function createPost(
           referenceUrl: data.referenceUrl?.trim() || null,
           searchText,
           isPublished: !isDraft,
+          ...transferReflectionDbData(data),
         } as any,
       });
       await syncPostTags(tx, tenantId, p.id, tagNames);
@@ -669,21 +786,7 @@ export async function updatePost(
   const postId = String(formData.get("postId") ?? "");
   if (!postId) return { ok: false, message: "投稿 ID が不正です" };
 
-  const parsed = postFields.safeParse({
-    tenantSlug: formData.get("tenantSlug"),
-    category: formData.get("category"),
-    title: formData.get("title") || null,
-    grade: String(formData.get("grade") ?? ""),
-    subject: String(formData.get("subject") ?? ""),
-    unit: String(formData.get("unit") ?? ""),
-    contentItem: formData.get("contentItem") || null,
-    aim: formData.get("aim") || null,
-    reflection: formData.get("reflection") || null,
-    point: formData.get("point"),
-    flow: formData.get("flow"),
-    referenceUrl: formData.get("referenceUrl") || null,
-    hashtagsRaw: formData.get("hashtags") || null,
-  });
+  const parsed = postFields.safeParse(parsePostFormInput(formData));
 
   if (!parsed.success) {
     return {
@@ -728,7 +831,7 @@ export async function updatePost(
       });
     } catch {}
 
-    const isDraft = formData.get("isDraft") === "on";
+    const isDraft = data.isDraft;
     const isFirstPublish = !isDraft && existing.isPublished === false;
 
     await withTenantRls(tenantId, async (tx) => {
@@ -749,6 +852,7 @@ export async function updatePost(
           searchText,
           isPublished: !isDraft,
           ...(isFirstPublish ? { createdAt: new Date() } : {}),
+          ...transferReflectionDbData(data),
         } as any,
       });
       await syncPostTags(tx, tenantId, postId, tagNames);

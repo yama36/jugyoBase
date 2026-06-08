@@ -17,8 +17,19 @@ import {
   isCommonGradeOrSubjectSelection,
   SUBJECT_OPTIONS,
 } from "@/lib/subject-grade-options";
+import {
+  TRANSFER_SKILL_ORIGIN_OPTIONS,
+  type TransferSkillOrigin,
+} from "@/lib/transfer-reflection";
 
-type PostWithTags = (Post & { contentItem?: string | null }) & {
+type PostWithTags = (Post & {
+  contentItem?: string | null;
+  isAiIctLesson?: boolean;
+  transferStrength?: string | null;
+  transferSkillOrigins?: string[];
+  transferSkillOriginOther?: string | null;
+  transferMotivation?: string | null;
+}) & {
   tags: (PostTag & { tag: Tag })[];
   attachments: Attachment[];
 };
@@ -98,6 +109,24 @@ export function PostEditor(props: Props) {
   const [category, setCategory] = useState<string>(
     (p as (Post & { category?: string }) | null)?.category ?? "授業",
   );
+  const [isAiIctLesson, setIsAiIctLesson] = useState<boolean>(p?.isAiIctLesson ?? false);
+  const [transferStrength, setTransferStrength] = useState<string>(
+    p?.transferStrength ?? "",
+  );
+  const [transferSkillOrigins, setTransferSkillOrigins] = useState<
+    TransferSkillOrigin[]
+  >((p?.transferSkillOrigins ?? []).filter((v): v is TransferSkillOrigin =>
+    TRANSFER_SKILL_ORIGIN_OPTIONS.includes(v as TransferSkillOrigin),
+  ));
+  const [transferSkillOriginOther, setTransferSkillOriginOther] = useState<string>(
+    p?.transferSkillOriginOther ?? "",
+  );
+  const [transferMotivation, setTransferMotivation] = useState<string>(
+    p?.transferMotivation ?? "",
+  );
+  const [isDraft, setIsDraft] = useState<boolean>(
+    props.mode === "edit" ? p?.isPublished === false : false,
+  );
   const [unitInputMode, setUnitInputMode] = useState<"select" | "custom">(() => {
     const g = p?.grade ?? "";
     const s = p?.subject ?? "";
@@ -167,6 +196,24 @@ export function PostEditor(props: Props) {
     unitFieldsReady &&
     !isCommonGradeOrSubjectSelection(grade, subject);
   const showUnitSelect = unitFieldsReady && unitInputMode === "select" && unitOptions.length > 0;
+  const showAiIctLessonOption = category === "授業";
+  const transferReflectionRequired = showAiIctLessonOption && isAiIctLesson && !isDraft;
+  const needsOtherOriginNote = transferSkillOrigins.includes("その他");
+  const transferReflectionIncomplete =
+    transferReflectionRequired &&
+    (!transferStrength.trim() ||
+      transferSkillOrigins.length === 0 ||
+      (needsOtherOriginNote && !transferSkillOriginOther.trim()) ||
+      !transferMotivation.trim());
+
+  function toggleTransferSkillOrigin(origin: TransferSkillOrigin) {
+    setTransferSkillOrigins((prev) =>
+      prev.includes(origin)
+        ? prev.filter((v) => v !== origin)
+        : [...prev, origin],
+    );
+  }
+
   const sectionLabels =
     category === "業務改善"
       ? {
@@ -224,7 +271,13 @@ export function PostEditor(props: Props) {
             name="category"
             required
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCategory(next);
+              if (next !== "授業") {
+                setIsAiIctLesson(false);
+              }
+            }}
             className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
           >
             <option value="授業">授業</option>
@@ -461,6 +514,119 @@ export function PostEditor(props: Props) {
           />
         </div>
 
+        {showAiIctLessonOption ? (
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+          <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-zinc-800">
+            <input
+              type="checkbox"
+              name="isAiIctLesson"
+              checked={isAiIctLesson}
+              onChange={(e) => setIsAiIctLesson(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              この授業はAI/ICTを活用しました
+              <span className="mt-1 block text-xs font-normal text-zinc-500">
+                ONにすると、授業実践に関する短いアンケート（3項目）が表示されます。回答は研究分析用であり、他の教員には公開されません。
+              </span>
+            </span>
+          </label>
+
+          {isAiIctLesson ? (
+            <div className="mt-4 space-y-4 border-t border-zinc-200 pt-4">
+              <p className="text-xs text-zinc-500">
+                授業の記録（上記のめあて・振り返りなど）はこれまでどおり共有されます。以下はアンケートとして別途保存されます。
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700">
+                  今回の授業で工夫できた・うまく使えたと感じる力{" "}
+                  <span className="text-red-600">*</span>
+                </label>
+                <p className="mt-1 text-xs text-zinc-500">
+                  短文でも構いません。例：プロンプトの工夫、出力の検証、課題の分解 など
+                </p>
+                <textarea
+                  name="transferStrength"
+                  rows={3}
+                  required={transferReflectionRequired}
+                  value={transferStrength}
+                  onChange={(e) => setTransferStrength(e.target.value)}
+                  placeholder="例：生徒の回答をその場で検証し、誤りを見つける力"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  maxLength={5000}
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-zinc-700">
+                  その力は主にどんな場面で身につけた／鍛えたと思うか{" "}
+                  <span className="text-red-600">*</span>
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">1つ以上選択してください</p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                  {TRANSFER_SKILL_ORIGIN_OPTIONS.map((origin) => (
+                    <label
+                      key={origin}
+                      className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-700"
+                    >
+                      <input
+                        type="checkbox"
+                        name="transferSkillOrigins"
+                        value={origin}
+                        checked={transferSkillOrigins.includes(origin)}
+                        onChange={() => toggleTransferSkillOrigin(origin)}
+                        className="text-sky-600"
+                      />
+                      {origin}
+                    </label>
+                  ))}
+                </div>
+                {needsOtherOriginNote ? (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-zinc-700">
+                      「その他」の補足 <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="transferSkillOriginOther"
+                      value={transferSkillOriginOther}
+                      onChange={(e) => setTransferSkillOriginOther(e.target.value)}
+                      required={transferReflectionRequired}
+                      placeholder="例：部活動の顧問業務"
+                      className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      maxLength={500}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700">
+                  なぜこの授業でその力・AI活用を使おうと思ったか{" "}
+                  <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  name="transferMotivation"
+                  rows={2}
+                  required={transferReflectionRequired}
+                  value={transferMotivation}
+                  onChange={(e) => setTransferMotivation(e.target.value)}
+                  placeholder="例：前回の振り返りで、生徒の思考を引き出す工夫が足りないと感じたため"
+                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  maxLength={5000}
+                />
+              </div>
+
+              {transferReflectionIncomplete ? (
+                <p className="text-sm text-red-600">
+                  AI/ICT活用授業として投稿するには、アンケート3項目をすべて入力してください。
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        ) : null}
+
         <div>
           <label className="block text-sm font-medium text-zinc-700">
             ハッシュタグ（#は不要。スペース・カンマ・読点などで区切り）
@@ -508,7 +674,8 @@ export function PostEditor(props: Props) {
             type="checkbox"
             name="isDraft"
             className="mt-0.5"
-            defaultChecked={props.mode === "edit" ? p?.isPublished === false : false}
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
           />
           <span>下書きとして保存する（一覧に表示されません）</span>
         </label>
@@ -517,8 +684,8 @@ export function PostEditor(props: Props) {
 
         <button
           type="submit"
-          disabled={isPending}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          disabled={isPending || transferReflectionIncomplete}
+          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           保存する
         </button>
