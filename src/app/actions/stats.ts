@@ -26,6 +26,7 @@ export async function getStats(tenantId: string) {
           SELECT subject, COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
+            AND TRIM(subject) <> ''
           GROUP BY subject
           ORDER BY count DESC
         `,
@@ -47,6 +48,7 @@ export async function getStats(tenantId: string) {
             COUNT(DISTINCT "authorId") AS author_count
           FROM "Post"
           WHERE "isPublished" = true
+            AND TRIM(subject) <> ''
           GROUP BY subject
         `,
 

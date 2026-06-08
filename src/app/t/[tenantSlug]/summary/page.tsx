@@ -259,7 +259,7 @@ export default async function SubjectSummaryPage({
   const knownSubjects = new Set<string>(SUBJECT_OPTIONS);
   const extraSubjects = stats.bySubjectDetail
     .map((row) => row.subject)
-    .filter((subject) => !knownSubjects.has(subject));
+    .filter((subject) => subject.trim() !== "" && !knownSubjects.has(subject));
   const allSubjects = [...SUBJECT_OPTIONS, ...extraSubjects];
 
   const subjectRows = allSubjects.map((subject) => {
