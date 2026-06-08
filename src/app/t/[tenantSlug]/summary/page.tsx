@@ -115,10 +115,6 @@ function SubjectCard({
           <p className="mt-3 text-sm leading-relaxed text-zinc-600">
             まだ投稿がありません。最初の実践やAI活用を共有してみませんか。
           </p>
-        ) : count === 1 ? (
-          <p className="mt-3 text-sm text-zinc-600">
-            あと1件で、仲間の参考が増えます。
-          </p>
         ) : null}
       </Link>
 

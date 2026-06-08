@@ -729,6 +729,7 @@ export async function updatePost(
     } catch {}
 
     const isDraft = formData.get("isDraft") === "on";
+    const isFirstPublish = !isDraft && existing.isPublished === false;
 
     await withTenantRls(tenantId, async (tx) => {
       await tx.post.update({
@@ -747,6 +748,7 @@ export async function updatePost(
           referenceUrl: data.referenceUrl?.trim() || null,
           searchText,
           isPublished: !isDraft,
+          ...(isFirstPublish ? { createdAt: new Date() } : {}),
         } as any,
       });
       await syncPostTags(tx, tenantId, postId, tagNames);
