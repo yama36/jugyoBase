@@ -260,7 +260,13 @@ export default async function SubjectSummaryPage({
     stats.byCategoryDetail.map((row) => [row.category, row]),
   );
 
-  const subjectRows = SUBJECT_OPTIONS.map((subject) => {
+  const knownSubjects = new Set<string>(SUBJECT_OPTIONS);
+  const extraSubjects = stats.bySubjectDetail
+    .map((row) => row.subject)
+    .filter((subject) => !knownSubjects.has(subject));
+  const allSubjects = [...SUBJECT_OPTIONS, ...extraSubjects];
+
+  const subjectRows = allSubjects.map((subject) => {
     const detail = detailBySubject.get(subject);
     return {
       subject,
@@ -288,8 +294,10 @@ export default async function SubjectSummaryPage({
   const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
 
-  const inviteSubjects = subjectRows.filter((r) => r.count <= 1);
-  const growingSubjects = subjectRows.filter((r) => r.count > 1);
+  const inviteSubjects = subjectRows.filter((r) => r.count === 0);
+  const growingSubjects = subjectRows
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count);
   const activeCategories = categoryRows.filter((r) => r.count > 0);
   const emptyCategories = categoryRows.filter((r) => r.count === 0);
 
@@ -329,7 +337,7 @@ export default async function SubjectSummaryPage({
         </div>
       ) : (
         <>
-          {/* みんなの共有（投稿数が多い教科 + 投稿のあるカテゴリ） */}
+          {/* みんなの共有（投稿のある教科 + 投稿のあるカテゴリ） */}
           {growingSubjects.length > 0 || activeCategories.length > 0 ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-zinc-800">みんなの共有</h2>
@@ -373,7 +381,7 @@ export default async function SubjectSummaryPage({
             <BarChart data={chartRows} max={maxCount} />
           </section>
 
-          {/* いま声を届けたい教科（投稿数が少ない教科） */}
+          {/* いま声を届けたい教科（まだ投稿がない教科） */}
           {inviteSubjects.length > 0 ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-zinc-800">

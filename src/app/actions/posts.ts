@@ -644,6 +644,9 @@ export async function createPost(
     });
 
     revalidatePath(`/t/${tenantSlug}/posts`);
+    if (!isDraft) {
+      revalidatePath(`/t/${tenantSlug}/summary`);
+    }
     return { ok: true, postId: post.id };
   } catch {
     return { ok: false, message: "保存に失敗しました" };
@@ -755,6 +758,9 @@ export async function updatePost(
     revalidatePath(`/t/${tenantSlug}/posts/${postId}/complete`);
     revalidatePath(`/t/${tenantSlug}/posts/new`);
     revalidatePath(`/t/${tenantSlug}/mypage`);
+    if (!isDraft) {
+      revalidatePath(`/t/${tenantSlug}/summary`);
+    }
     return { ok: true };
   } catch {
     return { ok: false, message: "更新に失敗しました" };
