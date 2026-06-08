@@ -1,16 +1,11 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
-import { withBasePath } from "@/lib/app-base-path";
-import {
-  getGradeBadgeClasses,
-  NEUTRAL_BADGE_CLASSES,
-  getSubjectBadgeClasses,
-  getUnitBadgeClasses,
-} from "@/lib/subject-grade-colors";
+import { pickPostThumbAttachment } from "@/lib/post-thumb";
+import { PostListThumbnail } from "@/components/PostListThumbnail";
+import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
 
 export default async function PostsPage({
@@ -206,28 +201,10 @@ export default async function PostsPage({
           </li>
         ) : (
           posts.map((post) => {
-            const attachments = (post as unknown as {
-              attachments?: {
-                id: string;
-                kind: "image" | "pdf" | "slide" | "video";
-                originalFilename: string;
-                malwareScanStatus: "pending" | "clean" | "infected" | "error";
-              }[];
-            }).attachments ?? [];
-            const imageAttachment = attachments.find(
-              (a) => a.kind === "image" && a.malwareScanStatus === "clean",
+            const thumbAttachment = pickPostThumbAttachment(
+              (post as { attachments?: Parameters<typeof pickPostThumbAttachment>[0] })
+                .attachments,
             );
-            const pdfAttachment = attachments.find(
-              (a) => a.kind === "pdf" && a.malwareScanStatus === "clean",
-            );
-            const thumbAttachment = imageAttachment ?? pdfAttachment ?? null;
-            const thumbHref = thumbAttachment
-              ? withBasePath(`/t/${tenantSlug}/files/${thumbAttachment.id}`)
-              : null;
-            const gradeColor = getGradeBadgeClasses(post.grade);
-            const subjectColor = getSubjectBadgeClasses(post.subject);
-            const unitColor = getUnitBadgeClasses(post.subject);
-            const categoryColor = NEUTRAL_BADGE_CLASSES;
 
             return (
               <li key={post.id}>
@@ -237,24 +214,10 @@ export default async function PostsPage({
                 >
                   <div className="flex gap-4">
                     {thumbAttachment ? (
-                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
-                        {thumbAttachment.kind === "image" && thumbHref ? (
-                          <Image
-                            unoptimized
-                            src={`${thumbHref}?thumb=1`}
-                            alt={thumbAttachment.originalFilename}
-                            width={96}
-                            height={96}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-600">
-                            <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">
-                              PDF
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      <PostListThumbnail
+                        tenantSlug={tenantSlug}
+                        attachment={thumbAttachment}
+                      />
                     ) : null}
 
                     <div className="min-w-0 flex-1">
@@ -270,41 +233,18 @@ export default async function PostsPage({
                         </time>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {/* カテゴリバッジを先頭に */}
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${categoryColor.wrapper}`}
-                        >
-                          <span className={categoryColor.label}>カテゴリ</span>
-                          <span className={categoryColor.value}>
-                            {post.category ?? "授業"}
-                          </span>
-                        </span>
-                        {post.grade ? (
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${gradeColor.wrapper}`}
-                          >
-                            <span className={gradeColor.value}>{post.grade}</span>
-                          </span>
-                        ) : null}
-                        {post.subject ? (
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${subjectColor.wrapper}`}
-                          >
-                            <span className={subjectColor.value}>
-                              {post.subject}
-                            </span>
-                          </span>
-                        ) : null}
-                        {(post as { hasCurriculumUnitOptions?: boolean }).hasCurriculumUnitOptions ? (
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${unitColor.wrapper}`}
-                          >
-                            <span className={unitColor.label}>単元</span>
-                            <span className={unitColor.value}>{post.unit}</span>
-                          </span>
-                        ) : null}
+                        <PostMetaBadges
+                          category={post.category}
+                          grade={post.grade}
+                          subject={post.subject}
+                          unit={post.unit}
+                          hasCurriculumUnitOptions={
+                            (post as { hasCurriculumUnitOptions?: boolean })
+                              .hasCurriculumUnitOptions
+                          }
+                        />
                         {post.contentItem ? (
-                          <span className="text-xs text-zinc-500">
+                          <span className="mt-1.5 block text-xs text-zinc-500">
                             {post.contentItem}
                           </span>
                         ) : null}

@@ -13,12 +13,7 @@ import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
-import {
-  getGradeBadgeClasses,
-  NEUTRAL_BADGE_CLASSES,
-  getSubjectBadgeClasses,
-  getUnitBadgeClasses,
-} from "@/lib/subject-grade-colors";
+import { PostMetaBadges } from "@/components/PostMetaBadges";
 
 export default async function PostDetailPage({
   params,
@@ -58,10 +53,6 @@ export default async function PostDetailPage({
   const canTry = canLike;
   const canBookmark = sameTenantAsViewer;
 
-  const gradeColor = getGradeBadgeClasses(post.grade);
-  const subjectColor = getSubjectBadgeClasses(post.subject);
-  const unitColor = getUnitBadgeClasses(post.subject);
-  const categoryColor = NEUTRAL_BADGE_CLASSES;
   const category = post.category ?? "授業";
   const sectionLabels =
     category === "業務改善"
@@ -175,35 +166,14 @@ export default async function PostDetailPage({
           {titleText}
         </h1>
         <div className="flex flex-wrap items-center gap-1.5">
-          {/* カテゴリバッジを先頭に */}
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${categoryColor.wrapper}`}
-          >
-            <span className={categoryColor.label}>カテゴリ</span>
-            <span className={categoryColor.value}>{category}</span>
-          </span>
-          {post.grade ? (
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${gradeColor.wrapper}`}
-            >
-              <span className={gradeColor.value}>{post.grade}</span>
-            </span>
-          ) : null}
-          {post.subject ? (
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs ${subjectColor.wrapper}`}
-            >
-              <span className={subjectColor.value}>{post.subject}</span>
-            </span>
-          ) : null}
-          {post.hasCurriculumUnitOptions ? (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${unitColor.wrapper}`}
-            >
-              <span className={unitColor.label}>単元</span>
-              <span className={unitColor.value}>{post.unit}</span>
-            </span>
-          ) : null}
+          <PostMetaBadges
+            category={category}
+            grade={post.grade}
+            subject={post.subject}
+            unit={post.unit}
+            hasCurriculumUnitOptions={post.hasCurriculumUnitOptions}
+            size="md"
+          />
           {post.contentItem ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs">
               <span className="text-zinc-500">内容項目</span>

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -5,7 +6,72 @@ import { listPosts } from "@/app/actions/posts";
 import { listBookmarkedPosts } from "@/app/actions/bookmarks";
 import { isNewPostShellDraft } from "@/lib/post-shell-draft";
 import { isDemoTenantSlug } from "@/lib/demo-public";
+import { pickPostThumbAttachment, type PostThumbAttachment } from "@/lib/post-thumb";
 import { DeletePostButton } from "@/components/DeletePostButton";
+import { PostListThumbnail } from "@/components/PostListThumbnail";
+import { PostMetaBadges } from "@/components/PostMetaBadges";
+
+type MyPagePost = {
+  id: string;
+  title: string | null;
+  grade: string;
+  subject: string;
+  unit: string;
+  category?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isPublished: boolean;
+  tags: { tag: { name: string } }[];
+  hasCurriculumUnitOptions?: boolean;
+  attachments?: PostThumbAttachment[];
+};
+
+function MyPagePostBody({
+  tenantSlug,
+  post,
+  title,
+  displayDate,
+}: {
+  tenantSlug: string;
+  post: MyPagePost;
+  title: ReactNode;
+  displayDate: Date;
+}) {
+  const thumbAttachment = pickPostThumbAttachment(post.attachments);
+
+  return (
+    <div className="flex gap-4">
+      {thumbAttachment ? (
+        <PostListThumbnail tenantSlug={tenantSlug} attachment={thumbAttachment} />
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          {title}
+          <time
+            dateTime={displayDate.toISOString()}
+            className="text-xs text-zinc-500"
+          >
+            {displayDate.toLocaleDateString("ja-JP")}
+          </time>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <PostMetaBadges
+            category={post.category}
+            grade={post.grade}
+            subject={post.subject}
+            unit={post.unit}
+            hasCurriculumUnitOptions={post.hasCurriculumUnitOptions}
+          />
+        </div>
+        {post.tags.length > 0 ? (
+          <p className="mt-2 text-xs text-sky-700">
+            {post.tags.map((pt) => `#${pt.tag.name}`).join(" ")}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export default async function MyPage({
   params,
@@ -29,23 +95,26 @@ export default async function MyPage({
     listBookmarkedPosts(session.user.tenantId, session.user.id),
   ]);
 
-  const published = posts.filter((p) => (p as any).isPublished !== false);
-  const drafts = posts.filter(
+  const myPosts = posts as MyPagePost[];
+  const myBookmarks = bookmarkedPosts as MyPagePost[];
+
+  const published = myPosts.filter((p) => p.isPublished !== false);
+  const drafts = myPosts.filter(
     (p) =>
-      (p as any).isPublished === false &&
+      p.isPublished === false &&
       !isNewPostShellDraft({
         isPublished: p.isPublished,
-        category: (p as { category?: string }).category,
+        category: p.category,
         title: p.title,
         grade: p.grade,
         subject: p.subject,
         unit: p.unit,
-        aim: p.aim,
-        contentItem: p.contentItem,
-        reflection: p.reflection,
-        point: p.point,
-        flow: p.flow,
-        referenceUrl: (p as { referenceUrl?: string | null }).referenceUrl,
+        aim: (p as { aim?: string }).aim ?? "",
+        contentItem: (p as { contentItem?: string | null }).contentItem ?? null,
+        reflection: (p as { reflection?: string | null }).reflection ?? null,
+        point: (p as { point?: string | null }).point ?? null,
+        flow: (p as { flow?: string | null }).flow ?? null,
+        referenceUrl: (p as { referenceUrl?: string | null }).referenceUrl ?? null,
       }),
   );
 
@@ -89,25 +158,21 @@ export default async function MyPage({
                   href={`/t/${tenantSlug}/posts/${post.id}/edit?from=mypage`}
                   className="min-w-0 flex-1 p-4"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <span className="rounded bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-800">
-                        下書き
+                  <MyPagePostBody
+                    tenantSlug={tenantSlug}
+                    post={post}
+                    displayDate={post.updatedAt}
+                    title={
+                      <span className="flex items-center gap-2">
+                        <span className="rounded bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                          下書き
+                        </span>
+                        <h2 className="font-medium text-zinc-900">
+                          {post.title?.trim() || "（無題）"}
+                        </h2>
                       </span>
-                      <h2 className="font-medium text-zinc-900">
-                        {post.title?.trim() || "（無題）"}
-                      </h2>
-                    </span>
-                    <time
-                      dateTime={post.createdAt.toISOString()}
-                      className="text-xs text-zinc-500"
-                    >
-                      {post.createdAt.toLocaleDateString("ja-JP")}
-                    </time>
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    {post.grade} / {post.subject} / {post.unit}
-                  </p>
+                    }
+                  />
                 </Link>
                 <div className="flex shrink-0 items-center border-l border-amber-200 px-3">
                   <DeletePostButton
@@ -124,11 +189,9 @@ export default async function MyPage({
       ) : null}
 
       <section className="space-y-3">
-        {drafts.length > 0 ? (
-          <h2 className="text-sm font-semibold text-zinc-600">
-            公開済み（{published.length}件）
-          </h2>
-        ) : null}
+        <h2 className="text-sm font-semibold text-zinc-600">
+          公開済み（{published.length}件）
+        </h2>
         <ul className="space-y-3">
           {published.length === 0 ? (
             <li className="rounded border border-dashed border-zinc-300 bg-white p-6 text-center text-sm text-zinc-600">
@@ -141,27 +204,16 @@ export default async function MyPage({
                   href={`/t/${tenantSlug}/posts/${post.id}?from=mypage`}
                   className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="font-medium text-zinc-900">
-                      {post.title?.trim() || "（無題）"}
-                    </h2>
-                    <time
-                      dateTime={post.createdAt.toISOString()}
-                      className="text-xs text-zinc-500"
-                    >
-                      {post.createdAt.toLocaleDateString("ja-JP")}
-                    </time>
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    {post.grade} / {post.subject} / {post.unit}
-                  </p>
-                  {post.tags.length > 0 ? (
-                    <p className="mt-2 text-xs text-sky-700">
-                      {(post as unknown as { tags: { tag: { name: string } }[] }).tags
-                        .map((pt) => `#${pt.tag.name}`)
-                        .join(" ")}
-                    </p>
-                  ) : null}
+                  <MyPagePostBody
+                    tenantSlug={tenantSlug}
+                    post={post}
+                    displayDate={post.createdAt}
+                    title={
+                      <h2 className="font-medium text-zinc-900">
+                        {post.title?.trim() || "（無題）"}
+                      </h2>
+                    }
+                  />
                 </Link>
               </li>
             ))
@@ -171,44 +223,33 @@ export default async function MyPage({
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-zinc-600">
-          ブックマーク（{bookmarkedPosts.length}件）
+          ブックマーク（{myBookmarks.length}件）
         </h2>
-        {bookmarkedPosts.length === 0 ? (
+        {myBookmarks.length === 0 ? (
           <div className="rounded border border-dashed border-zinc-300 bg-white p-6 text-center text-sm text-zinc-600">
             ブックマークした授業実践がここに表示されます
           </div>
         ) : (
           <ul className="space-y-3">
-            {bookmarkedPosts.map((post) => (
+            {myBookmarks.map((post) => (
               <li key={post.id}>
                 <Link
                   href={`/t/${tenantSlug}/posts/${post.id}?from=mypage`}
                   className="block rounded-lg border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <span className="text-amber-500">★</span>
-                      <h2 className="font-medium text-zinc-900">
-                        {post.title?.trim() || "（無題）"}
-                      </h2>
-                    </span>
-                    <time
-                      dateTime={post.createdAt.toISOString()}
-                      className="text-xs text-zinc-500"
-                    >
-                      {post.createdAt.toLocaleDateString("ja-JP")}
-                    </time>
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    {post.grade} / {post.subject} / {post.unit}
-                  </p>
-                  {post.tags.length > 0 ? (
-                    <p className="mt-2 text-xs text-sky-700">
-                      {(post as unknown as { tags: { tag: { name: string } }[] }).tags
-                        .map((pt) => `#${pt.tag.name}`)
-                        .join(" ")}
-                    </p>
-                  ) : null}
+                  <MyPagePostBody
+                    tenantSlug={tenantSlug}
+                    post={post}
+                    displayDate={post.createdAt}
+                    title={
+                      <span className="flex items-center gap-2">
+                        <span className="text-amber-500">★</span>
+                        <h2 className="font-medium text-zinc-900">
+                          {post.title?.trim() || "（無題）"}
+                        </h2>
+                      </span>
+                    }
+                  />
                 </Link>
               </li>
             ))}

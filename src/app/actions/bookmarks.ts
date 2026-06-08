@@ -56,6 +56,14 @@ export async function listBookmarkedPosts(tenantId: string, userId: string) {
         include: {
           author: { select: { id: true, name: true } },
           tags: { include: { tag: true } },
+          attachments: {
+            select: {
+              id: true,
+              kind: true,
+              originalFilename: true,
+              malwareScanStatus: true,
+            },
+          },
         },
       },
     },

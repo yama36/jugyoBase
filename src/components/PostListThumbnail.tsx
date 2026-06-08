@@ -1,0 +1,36 @@
+import Image from "next/image";
+import { withBasePath } from "@/lib/app-base-path";
+import type { PostThumbAttachment } from "@/lib/post-thumb";
+
+type PostListThumbnailProps = {
+  tenantSlug: string;
+  attachment: PostThumbAttachment;
+};
+
+export function PostListThumbnail({
+  tenantSlug,
+  attachment,
+}: PostListThumbnailProps) {
+  const thumbHref = withBasePath(`/t/${tenantSlug}/files/${attachment.id}`);
+
+  return (
+    <div className="h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+      {attachment.kind === "image" ? (
+        <Image
+          unoptimized
+          src={`${thumbHref}?thumb=1`}
+          alt={attachment.originalFilename}
+          width={96}
+          height={96}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-[11px] text-zinc-600">
+          <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">
+            PDF
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

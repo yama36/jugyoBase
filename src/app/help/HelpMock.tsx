@@ -1,3 +1,5 @@
+import { PostMetaBadges } from "@/components/PostMetaBadges";
+
 /**
  * /help ページの MDX 内で使う「擬似 UI モック」。
  *
@@ -534,20 +536,30 @@ function MyPageMock() {
         </p>
         <div className="flex items-stretch gap-2 rounded-lg border border-amber-200 bg-amber-50">
           <div className="min-w-0 flex-1 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="flex items-center gap-1.5">
-                <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                  下書き
-                </span>
-                <span className="text-xs font-medium text-zinc-900">
-                  水溶液の性質：色の変化を予想する
-                </span>
-              </span>
-              <span className="text-[10px] text-zinc-400">2026/05/11</span>
+            <div className="flex gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                      下書き
+                    </span>
+                    <span className="text-xs font-medium text-zinc-900">
+                      水溶液の性質：色の変化を予想する
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-zinc-400">2026/05/11</span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <PostMetaBadges
+                    category="授業"
+                    grade="小6"
+                    subject="理科"
+                    unit="水溶液の性質"
+                    hasCurriculumUnitOptions
+                  />
+                </div>
+              </div>
             </div>
-            <p className="mt-1 text-[10px] text-zinc-600">
-              小6 / 理科 / 水溶液の性質
-            </p>
           </div>
           <div className="flex shrink-0 items-center border-l border-amber-200 px-2">
             <span className="rounded border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] text-red-800">
@@ -562,16 +574,27 @@ function MyPageMock() {
           公開済み（2件）
         </p>
         <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xs font-medium text-zinc-900">
-              連立方程式：買い物の場面で式を立てる
-            </span>
-            <span className="text-[10px] text-zinc-400">2026/05/10</span>
+          <div className="flex gap-3">
+            <div className="h-14 w-14 shrink-0 rounded border border-zinc-200 bg-gradient-to-br from-zinc-100 to-zinc-200" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-medium text-zinc-900">
+                  連立方程式：買い物の場面で式を立てる
+                </span>
+                <span className="text-[10px] text-zinc-400">2026/05/10</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <PostMetaBadges
+                  category="授業"
+                  grade="2年"
+                  subject="数学"
+                  unit="連立方程式"
+                  hasCurriculumUnitOptions
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-sky-700">#協同学習 #ICT</p>
+            </div>
           </div>
-          <p className="mt-1 text-[10px] text-zinc-600">
-            2年 / 数学 / 連立方程式
-          </p>
-          <p className="mt-1 text-[10px] text-sky-700">#協同学習 #ICT</p>
         </div>
       </div>
 
@@ -580,18 +603,28 @@ function MyPageMock() {
           ブックマーク（1件）
         </p>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <span className="text-amber-500">★</span>
-              <span className="text-xs font-medium text-zinc-900">
-                走れメロスを「友情」の視点で読み直す
-              </span>
-            </span>
-            <span className="text-[10px] text-zinc-400">2026/05/08</span>
+          <div className="flex gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-amber-500">★</span>
+                  <span className="text-xs font-medium text-zinc-900">
+                    走れメロスを「友情」の視点で読み直す
+                  </span>
+                </span>
+                <span className="text-[10px] text-zinc-400">2026/05/08</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <PostMetaBadges
+                  category="授業"
+                  grade="2年"
+                  subject="国語"
+                  unit="走れメロス"
+                  hasCurriculumUnitOptions
+                />
+              </div>
+            </div>
           </div>
-          <p className="mt-1 text-[10px] text-zinc-600">
-            2年 / 国語 / 走れメロス
-          </p>
         </div>
       </div>
     </div>
