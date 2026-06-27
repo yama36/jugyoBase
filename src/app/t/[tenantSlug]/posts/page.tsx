@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 import { pickPostThumbAttachment } from "@/lib/post-thumb";
 import { PostListThumbnail } from "@/components/PostListThumbnail";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
@@ -20,6 +21,9 @@ export default async function PostsPage({
   const session = await auth();
   const tenantId = await resolveViewTenantId(tenantSlug);
   if (!tenantId) {
+    if (!isDemoTenantSlug(tenantSlug)) {
+      redirect(`/t/${tenantSlug}/login`);
+    }
     notFound();
   }
 

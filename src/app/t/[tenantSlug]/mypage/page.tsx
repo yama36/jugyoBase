@@ -6,6 +6,7 @@ import { listPosts } from "@/app/actions/posts";
 import { listBookmarkedPosts } from "@/app/actions/bookmarks";
 import { isNewPostShellDraft } from "@/lib/post-shell-draft";
 import { isDemoTenantSlug } from "@/lib/demo-public";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { pickPostThumbAttachment, type PostThumbAttachment } from "@/lib/post-thumb";
 import { DeletePostButton } from "@/components/DeletePostButton";
 import { PostListThumbnail } from "@/components/PostListThumbnail";
@@ -80,11 +81,15 @@ export default async function MyPage({
 }) {
   const { tenantSlug } = await params;
   const session = await auth();
-  if (!session?.user?.tenantId || !session.user.id) {
+  if (
+    !session?.user?.tenantId ||
+    !session.user.id ||
+    !canAccessTenantRoute(session, tenantSlug, { requireTenantId: true, requireUserId: true })
+  ) {
     if (isDemoTenantSlug(tenantSlug)) {
       redirect(`/t/${tenantSlug}/posts`);
     }
-    return null;
+    redirect(`/t/${tenantSlug}/login`);
   }
 
   const [posts, bookmarkedPosts] = await Promise.all([

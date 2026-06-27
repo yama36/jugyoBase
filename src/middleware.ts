@@ -20,6 +20,16 @@ export default auth((req) => {
   }
 
   const path = stripBasePath(pathname);
+  if (
+    path.startsWith("/t/") &&
+    pathname !== APP_BASE_PATH &&
+    !pathname.startsWith(`${APP_BASE_PATH}/`)
+  ) {
+    const url = req.nextUrl.clone();
+    url.pathname = `${APP_BASE_PATH}${path}`;
+    return NextResponse.redirect(url);
+  }
+
   if (!path.startsWith("/t/")) return NextResponse.next();
 
   const parts = path.split("/").filter(Boolean);
@@ -55,5 +65,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/jugyobase/t/:tenantSlug/:path*", "/api/auth/:path*"],
+  matcher: ["/jugyobase/t/:tenantSlug/:path*", "/t/:tenantSlug/:path*", "/api/auth/:path*"],
 };

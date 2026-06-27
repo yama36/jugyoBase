@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getAttachmentViewData } from "@/app/actions/posts";
 import { AttachmentSiblingNav } from "@/components/AttachmentSiblingNav";
 import { AttachmentViewer } from "@/components/AttachmentViewer";
@@ -43,6 +43,7 @@ export default async function AttachmentViewPage({
 
   const data = await getAttachmentViewData(tenantSlug, postId, attachmentId);
   if (!data.ok) {
+    if (data.httpStatus === 401) redirect(`/t/${tenantSlug}/login`);
     if (data.httpStatus === 404) notFound();
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">

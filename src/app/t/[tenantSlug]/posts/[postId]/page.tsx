@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getPost } from "@/app/actions/posts";
 import { listComments } from "@/app/actions/comments";
@@ -13,6 +13,7 @@ import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentSection } from "@/components/CommentSection";
 import { isS3Configured } from "@/lib/storage";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
 
 export default async function PostDetailPage({
@@ -26,7 +27,12 @@ export default async function PostDetailPage({
   const sp = await searchParams;
   const session = await auth();
   const tenantId = await resolveViewTenantId(tenantSlug);
-  if (!tenantId) notFound();
+  if (!tenantId) {
+    if (!isDemoTenantSlug(tenantSlug)) {
+      redirect(`/t/${tenantSlug}/login`);
+    }
+    notFound();
+  }
 
   const fromParam = typeof sp.from === "string" ? sp.from : undefined;
   const backToMypage = fromParam === "mypage";

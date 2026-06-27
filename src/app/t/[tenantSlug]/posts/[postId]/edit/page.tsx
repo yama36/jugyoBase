@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
   getPost,
@@ -9,6 +9,7 @@ import {
 import { PostEditor } from "@/components/PostEditor";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 import { isS3Configured } from "@/lib/storage";
+import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 export default async function EditPostPage({
   params,
@@ -20,7 +21,13 @@ export default async function EditPostPage({
   const { tenantSlug, postId } = await params;
   const sp = await searchParams;
   const session = await auth();
-  if (!session?.user?.tenantId) notFound();
+  if (
+    !session?.user?.tenantId ||
+    !session.user.id ||
+    !canAccessTenantRoute(session, tenantSlug, { requireTenantId: true, requireUserId: true })
+  ) {
+    redirect(`/t/${tenantSlug}/login`);
+  }
 
   const [curriculumUnits, searchOptions, post] = await Promise.all([
     listCurriculumUnitOptions(),

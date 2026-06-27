@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getPost } from "@/app/actions/posts";
 import { PrintButton } from "@/components/PrintButton";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
+import { isDemoTenantSlug } from "@/lib/demo-public";
 import {
   getGradeBadgeClasses,
   getSubjectBadgeClasses,
@@ -17,7 +18,12 @@ export default async function PostPrintPage({
   const { tenantSlug, postId } = await params;
 
   const tenantId = await resolveViewTenantId(tenantSlug);
-  if (!tenantId) notFound();
+  if (!tenantId) {
+    if (!isDemoTenantSlug(tenantSlug)) {
+      redirect(`/t/${tenantSlug}/login`);
+    }
+    notFound();
+  }
 
   const post = await getPost(tenantId, postId);
   if (!post) notFound();
