@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/lib/queries/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
+import { lessonPostsFilterHref } from "@/lib/lesson-post";
 import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
 import { SchoolTreeGrowth } from "@/components/SchoolTreeGrowth";
@@ -77,7 +78,7 @@ function SubjectCard({
   inviteTone: boolean;
 }) {
   const color = getSubjectBadgeClasses(subject);
-  const postsHref = `/t/${tenantSlug}/posts?subject=${encodeURIComponent(subject)}`;
+  const postsHref = lessonPostsFilterHref(tenantSlug, { subject });
 
   const cardClass = `rounded-lg border p-4 shadow-sm transition hover:border-zinc-300 ${
     inviteTone
@@ -282,13 +283,16 @@ export default async function SubjectSummaryPage({
     };
   });
 
-  const chartRows = [
-    ...categoryRows.map((r) => ({ label: r.category, count: r.count })),
-    ...subjectRows.map((r) => ({ label: r.subject, count: r.count })),
-  ];
-  const maxCount = Math.max(...chartRows.map((r) => r.count), 1);
+  const subjectChartRows = subjectRows
+    .filter((r) => r.count > 0)
+    .map((r) => ({ label: r.subject, count: r.count }));
+  const maxSubjectCount = Math.max(...subjectChartRows.map((r) => r.count), 1);
   const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
+  const lessonPostTotal = subjectRows.reduce((sum, row) => sum + row.count, 0);
+  const categoryPostTotal = categoryRows.reduce((sum, row) => sum + row.count, 0);
+  const unassignedLessonTotal =
+    stats.totals.total - lessonPostTotal - categoryPostTotal;
 
   const inviteSubjects = subjectRows.filter((r) => r.count === 0);
   const growingSubjects = subjectRows
@@ -318,6 +322,18 @@ export default async function SubjectSummaryPage({
         <SummaryCard label="今月の投稿" value={stats.totals.thisMonth} unit="件" />
         <SummaryCard label="共有のある教科" value={subjectsWithPosts} unit="教科" />
       </div>
+      {stats.totals.total > 0 ? (
+        <p className="text-xs text-zinc-500">
+          累計 {stats.totals.total} 件のうち、教科別に集計できる授業投稿が {lessonPostTotal} 件
+          {categoryPostTotal > 0
+            ? `、業務改善・AI・ICT活用が ${categoryPostTotal} 件`
+            : ""}
+          {unassignedLessonTotal > 0
+            ? `、教科未設定の授業投稿が ${unassignedLessonTotal} 件`
+            : ""}
+          です。
+        </p>
+      ) : null}
 
       {stats.totals.total === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">
@@ -346,7 +362,7 @@ export default async function SubjectSummaryPage({
                     count={row.count}
                     thisMonth={row.thisMonth}
                     authorCount={row.authorCount}
-                    barPercent={maxCount > 0 ? (row.count / maxCount) * 100 : 0}
+                    barPercent={maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0}
                     canCreatePost={canCreatePost}
                     inviteTone={false}
                   />
@@ -373,8 +389,9 @@ export default async function SubjectSummaryPage({
 
           {/* 教科別投稿数バーチャート */}
           <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
-            <BarChart data={chartRows} max={maxCount} />
+            <h2 className="mb-1 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
+            <p className="mb-4 text-xs text-zinc-500">授業カテゴリの投稿のみ（投稿がある教科）</p>
+            <BarChart data={subjectChartRows} max={maxSubjectCount} />
           </section>
 
           {/* いま声を届けたい教科（まだ投稿がない教科） */}
@@ -392,7 +409,7 @@ export default async function SubjectSummaryPage({
                     count={row.count}
                     thisMonth={row.thisMonth}
                     authorCount={row.authorCount}
-                    barPercent={maxCount > 0 ? (row.count / maxCount) * 100 : 0}
+                    barPercent={maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0}
                     canCreatePost={canCreatePost}
                     inviteTone
                   />

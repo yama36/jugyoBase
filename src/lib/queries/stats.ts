@@ -26,7 +26,7 @@ export async function getStats(tenantId: string) {
           SELECT subject, COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
-            AND category = '授業'
+            AND COALESCE(category, '授業') = '授業'
             AND TRIM(subject) <> ''
           GROUP BY subject
           ORDER BY count DESC
@@ -49,7 +49,7 @@ export async function getStats(tenantId: string) {
             COUNT(DISTINCT "authorId") AS author_count
           FROM "Post"
           WHERE "isPublished" = true
-            AND category = '授業'
+            AND COALESCE(category, '授業') = '授業'
             AND TRIM(subject) <> ''
           GROUP BY subject
         `,
@@ -58,7 +58,7 @@ export async function getStats(tenantId: string) {
           SELECT grade, COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
-            AND category = '授業'
+            AND COALESCE(category, '授業') = '授業'
             AND TRIM(grade) <> ''
           GROUP BY grade
           ORDER BY grade ASC
@@ -86,6 +86,8 @@ export async function getStats(tenantId: string) {
           SELECT t.name, COUNT(pt."postId") AS count
           FROM "PostTag" pt
           JOIN "Tag" t ON pt."tagId" = t.id
+          JOIN "Post" p ON p.id = pt."postId"
+          WHERE p."isPublished" = true
           GROUP BY t.id, t.name
           ORDER BY count DESC
           LIMIT 10
