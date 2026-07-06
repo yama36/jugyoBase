@@ -23,12 +23,16 @@ export async function getStats(tenantId: string) {
         `,
 
         tx.$queryRaw<{ subject: string; count: bigint }[]>`
-          SELECT subject, COUNT(*) AS count
+          SELECT
+            CASE
+              WHEN TRIM(subject) = '' THEN '共通'
+              ELSE TRIM(subject)
+            END AS subject,
+            COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
             AND COALESCE(category, '授業') = '授業'
-            AND TRIM(subject) <> ''
-          GROUP BY subject
+          GROUP BY 1
           ORDER BY count DESC
         `,
 
@@ -41,7 +45,10 @@ export async function getStats(tenantId: string) {
           }[]
         >`
           SELECT
-            subject,
+            CASE
+              WHEN TRIM(subject) = '' THEN '共通'
+              ELSE TRIM(subject)
+            END AS subject,
             COUNT(*) AS count,
             COUNT(*) FILTER (
               WHERE DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', NOW())
@@ -50,8 +57,7 @@ export async function getStats(tenantId: string) {
           FROM "Post"
           WHERE "isPublished" = true
             AND COALESCE(category, '授業') = '授業'
-            AND TRIM(subject) <> ''
-          GROUP BY subject
+          GROUP BY 1
         `,
 
         tx.$queryRaw<{ grade: string; count: bigint }[]>`

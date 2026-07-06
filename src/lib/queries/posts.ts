@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { withTenantRls } from "@/lib/prisma-tenant";
 import { prisma } from "@/lib/prisma";
+import { COMMON_GRADE_SUBJECT_LABEL } from "@/lib/subject-grade-options";
 
 export type PostSearchParams = {
   q?: string;
@@ -61,7 +62,15 @@ export async function listPosts(
   const filters: Prisma.PostWhereInput[] = [];
   if (!params.includeDrafts) filters.push({ isPublished: true });
   if (params.grade) filters.push({ grade: params.grade });
-  if (params.subject) filters.push({ subject: params.subject });
+  if (params.subject) {
+    if (params.subject === COMMON_GRADE_SUBJECT_LABEL) {
+      filters.push({
+        OR: [{ subject: COMMON_GRADE_SUBJECT_LABEL }, { subject: "" }],
+      });
+    } else {
+      filters.push({ subject: params.subject });
+    }
+  }
   if (params.category) filters.push({ category: params.category });
   if (params.unit?.trim())
     filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });

@@ -3,6 +3,7 @@ import {
   isLessonCategory,
   lessonPostsFilterHref,
   LESSON_CATEGORY,
+  normalizeLessonSubject,
 } from "./lesson-post";
 
 describe("isLessonCategory", () => {
@@ -12,6 +13,17 @@ describe("isLessonCategory", () => {
 
   it("rejects other categories", () => {
     expect(isLessonCategory("業務改善")).toBe(false);
+  });
+});
+
+describe("normalizeLessonSubject", () => {
+  it("trims whitespace", () => {
+    expect(normalizeLessonSubject(" 国語 ")).toBe("国語");
+  });
+
+  it("maps empty to common label", () => {
+    expect(normalizeLessonSubject("")).toBe("共通");
+    expect(normalizeLessonSubject("   ")).toBe("共通");
   });
 });
 

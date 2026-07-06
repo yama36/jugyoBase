@@ -9,35 +9,6 @@ import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
 import { SchoolTreeGrowth } from "@/components/SchoolTreeGrowth";
 
-function BarChart({
-  data,
-  max,
-}: {
-  data: { label: string; count: number }[];
-  max: number;
-}) {
-  return (
-    <ul className="space-y-2">
-      {data.map((item) => (
-        <li key={item.label} className="flex items-center gap-3">
-          <span className="w-24 shrink-0 text-right text-sm text-zinc-600">
-            {item.label}
-          </span>
-          <div className="relative h-5 flex-1 overflow-hidden rounded bg-zinc-100">
-            <div
-              className="absolute left-0 top-0 h-full rounded bg-sky-500 transition-all"
-              style={{ width: `${max > 0 ? (item.count / max) * 100 : 0}%` }}
-            />
-          </div>
-          <span className="w-8 shrink-0 text-right text-sm font-medium text-zinc-700">
-            {item.count}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function SummaryCard({
   label,
   value,
@@ -114,7 +85,7 @@ function SubjectCard({
 
         {count === 0 ? (
           <p className="mt-3 text-sm leading-relaxed text-zinc-600">
-            まだ投稿がありません。最初の実践やAI活用を共有してみませんか。
+            まだ投稿がありません。最初の実践を共有してみませんか。
           </p>
         ) : null}
       </Link>
@@ -283,23 +254,14 @@ export default async function SubjectSummaryPage({
     };
   });
 
-  const subjectChartRows = subjectRows
-    .filter((r) => r.count > 0)
-    .map((r) => ({ label: r.subject, count: r.count }));
-  const maxSubjectCount = Math.max(...subjectChartRows.map((r) => r.count), 1);
+  const maxSubjectCount = Math.max(...subjectRows.map((r) => r.count), 1);
   const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
-  const lessonPostTotal = subjectRows.reduce((sum, row) => sum + row.count, 0);
-  const categoryPostTotal = categoryRows.reduce((sum, row) => sum + row.count, 0);
-  const unassignedLessonTotal =
-    stats.totals.total - lessonPostTotal - categoryPostTotal;
 
   const inviteSubjects = subjectRows.filter((r) => r.count === 0);
   const growingSubjects = subjectRows
     .filter((r) => r.count > 0)
     .sort((a, b) => b.count - a.count);
-  const activeCategories = categoryRows.filter((r) => r.count > 0);
-  const emptyCategories = categoryRows.filter((r) => r.count === 0);
 
   const canCreatePost =
     session.user.tenantSlug === tenantSlug &&
@@ -322,18 +284,6 @@ export default async function SubjectSummaryPage({
         <SummaryCard label="今月の投稿" value={stats.totals.thisMonth} unit="件" />
         <SummaryCard label="共有のある教科" value={subjectsWithPosts} unit="教科" />
       </div>
-      {stats.totals.total > 0 ? (
-        <p className="text-xs text-zinc-500">
-          累計 {stats.totals.total} 件のうち、教科別に集計できる授業投稿が {lessonPostTotal} 件
-          {categoryPostTotal > 0
-            ? `、業務改善・AI・ICT活用が ${categoryPostTotal} 件`
-            : ""}
-          {unassignedLessonTotal > 0
-            ? `、教科未設定の授業投稿が ${unassignedLessonTotal} 件`
-            : ""}
-          です。
-        </p>
-      ) : null}
 
       {stats.totals.total === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">
@@ -349,10 +299,33 @@ export default async function SubjectSummaryPage({
         </div>
       ) : (
         <>
-          {/* みんなの共有（投稿のある教科 + 投稿のあるカテゴリ） */}
-          {growingSubjects.length > 0 || activeCategories.length > 0 ? (
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-zinc-800">
+              業務改善・AI・ICT活用
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {categoryRows.map((row) => (
+                <CategoryCard
+                  key={row.category}
+                  tenantSlug={tenantSlug}
+                  category={row.category}
+                  count={row.count}
+                  thisMonth={row.thisMonth}
+                  authorCount={row.authorCount}
+                  barPercent={
+                    maxCategoryCount > 0
+                      ? (row.count / maxCategoryCount) * 100
+                      : 0
+                  }
+                  canCreatePost={canCreatePost}
+                />
+              ))}
+            </ul>
+          </section>
+
+          {growingSubjects.length > 0 ? (
             <section className="space-y-4">
-              <h2 className="text-sm font-semibold text-zinc-800">みんなの共有</h2>
+              <h2 className="text-sm font-semibold text-zinc-800">教科別（授業）</h2>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {growingSubjects.map((row) => (
                   <SubjectCard
@@ -362,39 +335,17 @@ export default async function SubjectSummaryPage({
                     count={row.count}
                     thisMonth={row.thisMonth}
                     authorCount={row.authorCount}
-                    barPercent={maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0}
-                    canCreatePost={canCreatePost}
-                    inviteTone={false}
-                  />
-                ))}
-                {activeCategories.map((row) => (
-                  <CategoryCard
-                    key={row.category}
-                    tenantSlug={tenantSlug}
-                    category={row.category}
-                    count={row.count}
-                    thisMonth={row.thisMonth}
-                    authorCount={row.authorCount}
                     barPercent={
-                      maxCategoryCount > 0
-                        ? (row.count / maxCategoryCount) * 100
-                        : 0
+                      maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0
                     }
                     canCreatePost={canCreatePost}
+                    inviteTone={false}
                   />
                 ))}
               </ul>
             </section>
           ) : null}
 
-          {/* 教科別投稿数バーチャート */}
-          <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-1 text-sm font-semibold text-zinc-800">教科別投稿数</h2>
-            <p className="mb-4 text-xs text-zinc-500">授業カテゴリの投稿のみ（投稿がある教科）</p>
-            <BarChart data={subjectChartRows} max={maxSubjectCount} />
-          </section>
-
-          {/* いま声を届けたい教科（まだ投稿がない教科） */}
           {inviteSubjects.length > 0 ? (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-zinc-800">
@@ -409,36 +360,11 @@ export default async function SubjectSummaryPage({
                     count={row.count}
                     thisMonth={row.thisMonth}
                     authorCount={row.authorCount}
-                    barPercent={maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0}
-                    canCreatePost={canCreatePost}
-                    inviteTone
-                  />
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {/* 業務改善・AI・ICT活用（投稿がまだないカテゴリのみ） */}
-          {emptyCategories.length > 0 ? (
-            <section className="space-y-4">
-              <h2 className="text-sm font-semibold text-zinc-800">
-                業務改善・AI・ICT活用
-              </h2>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {emptyCategories.map((row) => (
-                  <CategoryCard
-                    key={row.category}
-                    tenantSlug={tenantSlug}
-                    category={row.category}
-                    count={row.count}
-                    thisMonth={row.thisMonth}
-                    authorCount={row.authorCount}
                     barPercent={
-                      maxCategoryCount > 0
-                        ? (row.count / maxCategoryCount) * 100
-                        : 0
+                      maxSubjectCount > 0 ? (row.count / maxSubjectCount) * 100 : 0
                     }
                     canCreatePost={canCreatePost}
+                    inviteTone
                   />
                 ))}
               </ul>
