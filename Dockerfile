@@ -35,19 +35,17 @@ ENV PORT=3000
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates curl ffmpeg \
   && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@11.1.1 --activate
 
 # standalone はビルド時の Next と同じバイナリで動かす（runner で pnpm install した next だと basePath が壊れる）
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# `docker compose run --rm app npx prisma migrate deploy` 用
+# `docker compose run --rm app prisma migrate deploy` 用
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
-# migrate deploy / db:seed（tsx prisma/seed.ts）用（pnpm 11 は --no-save 非対応）
-RUN pnpm add -D prisma@6.19.3 tsx@4.21.0 \
-  && pnpm exec prisma generate
+# migrate deploy / seed 用 CLI（pnpm add は全依存解決で OOM になるため global のみ）
+RUN npm install -g prisma@6.19.3 tsx@4.21.0
 
 EXPOSE 3000
 CMD ["node", "server.js"]

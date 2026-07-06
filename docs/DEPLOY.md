@@ -192,9 +192,9 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run 
 
 # 単元マスタ（CurriculumUnit）の初回投入（投稿フォームの単元候補に必要）
 # マイグレーションだけでは候補は空のまま。初回デプロイ時に一度実行する。
-docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app pnpm run db:seed
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app prisma db seed
 # 代替: 管理者でログイン後、/t/{tenantSlug}/admin/curriculum から単元を追加
-# seed で `spawn tsx ENOENT` が出る場合: `git pull` 後に `build app --no-cache`（runner 層が CACHED のまま古いことがある）。
+# seed で失敗する場合: `git pull` 後に `build app --no-cache`（runner 層が CACHED のまま古いことがある）。
 # 再ビルド前の一時回避: … run --rm app node --experimental-strip-types prisma/seed.ts
 
 # Postgres / MinIO / app をまとめて起動（既に DB だけ起動している場合も up で揃う）
@@ -313,7 +313,7 @@ git pull
 # 本番のみ存在する /space 用の location が消えることがある。差分を確認してから reload する。
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production build app
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
-# 単元マスタ未投入なら（初回のみ）: … run --rm app pnpm run db:seed
+# 単元マスタ未投入なら（初回のみ）: … run --rm app prisma db seed
 exit
 sudo systemctl restart jugyobase
 # 上記は compose を stop してから up -d し直す。DB/MinIO も一度止まるが数秒で復帰する。
@@ -365,4 +365,4 @@ docker exec -t $(docker compose -f /opt/jugyobase/deploy/docker-compose.prod.yml
 | `/jugyobase` が 404、`/t/...` だけ 500（コンテナ内 curl） | 古い Docker イメージで basePath が Linux 上で壊れていることがある。**standalone イメージ**（本リポジトリの `Dockerfile`）で `build --no-cache` し直す。 |
 | `https://identfill.com/space/...` が **404**       | 同梱の `identfill.conf` では `location /` が `return 404` のため、`location ^~ /space/`（または静的 `alias`）を **`location /` より前**に追加したか確認。`nginx -t` 後に `systemctl reload nginx`。 |
 | `git pull` で `dubious ownership`                | **`sudo` で `git pull` しない**。`sudo -iu jugyobase` してから `git pull`。必要なら `git config --global --add safe.directory /opt/jugyobase`（**jugyobase ユーザ**で実行。root の `--global` は使わない）。 |
-| `db:seed` で `spawn tsx ENOENT`                  | `git pull` 後 `build app --no-cache`。すぐ seed だけなら `… run --rm app node --experimental-strip-types prisma/seed.ts`。 |
+| `prisma db seed` が失敗する                          | `git pull` 後 `build app --no-cache`。すぐ seed だけなら `… run --rm app node --experimental-strip-types prisma/seed.ts`。 |
