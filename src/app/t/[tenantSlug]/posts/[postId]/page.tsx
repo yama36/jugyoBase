@@ -16,6 +16,10 @@ import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { editButtonClass } from "@/lib/form-classes";
+import {
+  getPostSectionLabels,
+  normalizePostCategory,
+} from "@/lib/post-category";
 
 export default async function PostDetailPage({
   params,
@@ -60,28 +64,8 @@ export default async function PostDetailPage({
   const canTry = canLike;
   const canBookmark = sameTenantAsViewer;
 
-  const category = post.category ?? "授業";
-  const sectionLabels =
-    category === "業務改善"
-      ? {
-          aim: "課題・背景",
-          reflection: "効果・結果",
-          flow: "気をつける点",
-          point: "試みたこと（ツール名など）",
-        }
-      : category === "AI・ICT活用"
-        ? {
-            aim: "活用場面",
-            reflection: "よかった点・気をつけた点",
-            flow: "使ったプロンプト例",
-            point: "使用したAI・ツール名",
-          }
-        : {
-            aim: "めあて",
-            reflection: "振り返り",
-            flow: "授業の流れ",
-            point: "工夫した点",
-          };
+  const category = normalizePostCategory(post.category);
+  const sectionLabels = getPostSectionLabels(post.category, post.subject);
   const contentSections = [
     { key: "aim", title: sectionLabels.aim, value: post.aim },
     { key: "reflection", title: sectionLabels.reflection, value: post.reflection },

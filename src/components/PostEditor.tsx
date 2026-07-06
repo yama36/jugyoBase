@@ -15,9 +15,17 @@ import {
 import {
   curriculumUnitMatchesSelection,
   GRADE_OPTIONS,
+  AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
   isCommonGradeOrSubjectSelection,
-  SUBJECT_OPTIONS,
 } from "@/lib/subject-grade-options";
+import {
+  AI_ICT_CATEGORY,
+  getPostSectionLabels,
+  normalizePostCategory,
+  normalizePostSubject,
+  subjectRequiredForCategory,
+  subjectSelectOptions,
+} from "@/lib/post-category";
 import {
   TRANSFER_SKILL_ORIGIN_OPTIONS,
   type TransferSkillOrigin,
@@ -111,12 +119,15 @@ export function PostEditor(props: Props) {
   const hashtagsInitial =
     p?.tags.map((pt) => `#${pt.tag.name}`).join(" ") ?? "";
   const [grade, setGrade] = useState<string>(p?.grade ?? "");
-  const [subject, setSubject] = useState<string>(p?.subject ?? "");
+  const rawCategory = (p as (Post & { category?: string }) | null)?.category;
+  const [category, setCategory] = useState<string>(
+    normalizePostCategory(rawCategory),
+  );
+  const [subject, setSubject] = useState<string>(
+    normalizePostSubject(rawCategory, p?.subject),
+  );
   const [unit, setUnit] = useState<string>(p?.unit ?? "");
   const [contentItem, setContentItem] = useState<string>(p?.contentItem?.trim() ?? "");
-  const [category, setCategory] = useState<string>(
-    (p as (Post & { category?: string }) | null)?.category ?? "授業",
-  );
   const [isAiIctLesson, setIsAiIctLesson] = useState<boolean>(p?.isAiIctLesson ?? false);
   const [transferStrength, setTransferStrength] = useState<string>(
     p?.transferStrength ?? "",
@@ -198,7 +209,8 @@ export function PostEditor(props: Props) {
 
   const unitFieldsReady = Boolean(grade && subject);
   const gradeRequired = category === "授業";
-  const subjectRequired = category === "授業";
+  const subjectRequired = subjectRequiredForCategory(category);
+  const subjectOptions = subjectSelectOptions(category);
   const unitRequired =
     category === "授業" &&
     unitFieldsReady &&
@@ -222,27 +234,7 @@ export function PostEditor(props: Props) {
     );
   }
 
-  const sectionLabels =
-    category === "業務改善"
-      ? {
-          aim: "課題・背景",
-          reflection: "効果・結果",
-          point: "試みたこと（ツール名など）",
-          flow: "気をつける点",
-        }
-      : category === "AI・ICT活用"
-        ? {
-            aim: "活用場面",
-            reflection: "よかった点・気をつけた点",
-            point: "使用したAI・ツール名",
-            flow: "使ったプロンプト例",
-          }
-        : {
-            aim: "めあて",
-            reflection: "振り返り",
-            point: "工夫した点（POINT）",
-            flow: "簡単な授業の流れ",
-          };
+  const sectionLabels = getPostSectionLabels(category, subject);
 
   return (
     <div className="space-y-6">
@@ -282,6 +274,10 @@ export function PostEditor(props: Props) {
             onChange={(e) => {
               const next = e.target.value;
               setCategory(next);
+              if (next === "授業" && subject === AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT) {
+                setSubject("");
+                setUnit("");
+              }
               if (next !== "授業") {
                 setIsAiIctLesson(false);
               }
@@ -289,8 +285,7 @@ export function PostEditor(props: Props) {
             className={formSelectClass}
           >
             <option value="授業">授業</option>
-            <option value="業務改善">業務改善</option>
-            <option value="AI・ICT活用">AI / ICT活用</option>
+            <option value={AI_ICT_CATEGORY}>AI / ICT活用(授業での活用含む)</option>
           </select>
         </div>
 
@@ -362,7 +357,7 @@ export function PostEditor(props: Props) {
               <option value="" disabled>
                 選択してください
               </option>
-              {SUBJECT_OPTIONS.map((v) => (
+              {subjectOptions.map((v) => (
                 <option key={v} value={v}>
                   {v}
                 </option>
@@ -382,7 +377,7 @@ export function PostEditor(props: Props) {
           </label>
           <p className="mt-1 text-xs text-zinc-500">
             {category !== "授業"
-              ? "業務改善・AI/ICT活用では単元は任意です。必要な場合のみ入力してください。"
+              ? "AI / ICT活用では単元は任意です。必要な場合のみ入力してください。"
               : unitRequired
               ? "候補から選ぶか、候補にない場合は自由入力できます。学年・教科が「共通」の単元は、該当する組み合わせの候補にも表示されます。"
               : "学年または教科が「共通」の場合、単元の入力は任意です。"}

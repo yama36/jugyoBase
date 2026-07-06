@@ -4,8 +4,12 @@ import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/lib/queries/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import { categoryDisplayLabel, lessonPostsFilterHref } from "@/lib/lesson-post";
-import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import { categoryDisplayLabel, aiIctPostsFilterHref, lessonPostsFilterHref } from "@/lib/lesson-post";
+import {
+  AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
+  SUBJECT_OPTIONS,
+} from "@/lib/subject-grade-options";
+import { AI_ICT_CATEGORY, LEGACY_BUSINESS_IMPROVEMENT_CATEGORY } from "@/lib/post-category";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
 import { SchoolTreeGrowth } from "@/components/SchoolTreeGrowth";
 
@@ -38,6 +42,7 @@ function SubjectCard({
   barPercent,
   canCreatePost,
   inviteTone,
+  postsHref: postsHrefProp,
 }: {
   tenantSlug: string;
   subject: string;
@@ -47,9 +52,11 @@ function SubjectCard({
   barPercent: number;
   canCreatePost: boolean;
   inviteTone: boolean;
+  postsHref?: string;
 }) {
   const color = getSubjectBadgeClasses(subject);
-  const postsHref = lessonPostsFilterHref(tenantSlug, { subject });
+  const postsHref =
+    postsHrefProp ?? lessonPostsFilterHref(tenantSlug, { subject });
 
   const cardClass = `rounded-lg border p-4 shadow-sm transition hover:border-zinc-300 ${
     inviteTone
@@ -116,12 +123,6 @@ const CATEGORY_COLORS: Record<
   string,
   { wrapper: string; label: string; value: string; bar: string }
 > = {
-  業務改善: {
-    wrapper: "bg-emerald-50 border border-emerald-200",
-    label: "text-emerald-600",
-    value: "text-emerald-900 font-medium",
-    bar: "bg-emerald-500",
-  },
   "AI・ICT活用": {
     wrapper: "bg-violet-50 border border-violet-200",
     label: "text-violet-600",
@@ -224,6 +225,9 @@ export default async function SubjectSummaryPage({
   const detailBySubject = new Map(
     stats.bySubjectDetail.map((row) => [row.subject, row]),
   );
+  const detailByAiIctSubject = new Map(
+    stats.byAiIctSubjectDetail.map((row) => [row.subject, row]),
+  );
   const detailByCategory = new Map(
     stats.byCategoryDetail.map((row) => [row.category, row]),
   );
@@ -244,22 +248,54 @@ export default async function SubjectSummaryPage({
     };
   });
 
-  const categoryRows = ["AI・ICT活用", "業務改善"].map((cat) => {
-    const detail = detailByCategory.get(cat);
+  const knownAiIctSubjects = new Set<string>([
+    AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
+    ...SUBJECT_OPTIONS,
+  ]);
+  const extraAiIctSubjects = stats.byAiIctSubjectDetail
+    .map((row) => row.subject)
+    .filter((subject) => subject.trim() !== "" && !knownAiIctSubjects.has(subject));
+  const allAiIctSubjects = [
+    AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
+    ...SUBJECT_OPTIONS,
+    ...extraAiIctSubjects,
+  ];
+
+  const aiIctSubjectRows = allAiIctSubjects.map((subject) => {
+    const detail = detailByAiIctSubject.get(subject);
     return {
-      category: cat,
+      subject,
       count: detail?.count ?? 0,
       thisMonth: detail?.thisMonth ?? 0,
       authorCount: detail?.authorCount ?? 0,
     };
   });
 
+  const aiIctCategoryDetail = detailByCategory.get(AI_ICT_CATEGORY);
+  const legacyBusinessDetail = detailByCategory.get(
+    LEGACY_BUSINESS_IMPROVEMENT_CATEGORY,
+  );
+  const aiIctTotal = {
+    count:
+      (aiIctCategoryDetail?.count ?? 0) + (legacyBusinessDetail?.count ?? 0),
+    thisMonth:
+      (aiIctCategoryDetail?.thisMonth ?? 0) +
+      (legacyBusinessDetail?.thisMonth ?? 0),
+    authorCount:
+      (aiIctCategoryDetail?.authorCount ?? 0) +
+      (legacyBusinessDetail?.authorCount ?? 0),
+  };
+
   const maxSubjectCount = Math.max(...subjectRows.map((r) => r.count), 1);
-  const maxCategoryCount = Math.max(...categoryRows.map((r) => r.count), 1);
+  const maxAiIctSubjectCount = Math.max(...aiIctSubjectRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
 
   const inviteSubjects = subjectRows.filter((r) => r.count === 0);
   const growingSubjects = subjectRows
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  const aiIctGrowingSubjects = aiIctSubjectRows
     .filter((r) => r.count > 0)
     .sort((a, b) => b.count - a.count);
 
@@ -301,23 +337,34 @@ export default async function SubjectSummaryPage({
         <>
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-zinc-800">
-              AI / ICT活用・業務改善
+              {categoryDisplayLabel(AI_ICT_CATEGORY)}
             </h2>
             <ul className="grid gap-3 sm:grid-cols-2">
-              {categoryRows.map((row) => (
-                <CategoryCard
-                  key={row.category}
+              <CategoryCard
+                tenantSlug={tenantSlug}
+                category={AI_ICT_CATEGORY}
+                count={aiIctTotal.count}
+                thisMonth={aiIctTotal.thisMonth}
+                authorCount={aiIctTotal.authorCount}
+                barPercent={100}
+                canCreatePost={canCreatePost}
+              />
+              {aiIctGrowingSubjects.map((row) => (
+                <SubjectCard
+                  key={`ai-ict-${row.subject}`}
                   tenantSlug={tenantSlug}
-                  category={row.category}
+                  subject={row.subject}
                   count={row.count}
                   thisMonth={row.thisMonth}
                   authorCount={row.authorCount}
                   barPercent={
-                    maxCategoryCount > 0
-                      ? (row.count / maxCategoryCount) * 100
+                    maxAiIctSubjectCount > 0
+                      ? (row.count / maxAiIctSubjectCount) * 100
                       : 0
                   }
                   canCreatePost={canCreatePost}
+                  inviteTone={false}
+                  postsHref={aiIctPostsFilterHref(tenantSlug, { subject: row.subject })}
                 />
               ))}
             </ul>

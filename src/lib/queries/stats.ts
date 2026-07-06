@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function getStats(tenantId: string) {
   return withTenantRls(tenantId, async (tx) => {
-    const [totals, bySubject, bySubjectDetail, byGrade, byMonth, byAuthor, topTags, byCategoryDetail] =
+    const [totals, bySubject, bySubjectDetail, byAiIctSubjectDetail, byGrade, byMonth, byAuthor, topTags, byCategoryDetail] =
       await Promise.all([
         tx.$queryRaw<
           { total: bigint; this_month: bigint; active_authors: bigint }[]
@@ -57,6 +57,34 @@ export async function getStats(tenantId: string) {
           FROM "Post"
           WHERE "isPublished" = true
             AND COALESCE(category, '授業') = '授業'
+          GROUP BY 1
+        `,
+
+        tx.$queryRaw<
+          {
+            subject: string;
+            count: bigint;
+            this_month: bigint;
+            author_count: bigint;
+          }[]
+        >`
+          SELECT
+            CASE
+              WHEN category = '業務改善' THEN '業務改善'
+              WHEN TRIM(subject) = '' THEN '共通'
+              ELSE TRIM(subject)
+            END AS subject,
+            COUNT(*) AS count,
+            COUNT(*) FILTER (
+              WHERE DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', NOW())
+            ) AS this_month,
+            COUNT(DISTINCT "authorId") AS author_count
+          FROM "Post"
+          WHERE "isPublished" = true
+            AND (
+              COALESCE(category, '授業') = 'AI・ICT活用'
+              OR category = '業務改善'
+            )
           GROUP BY 1
         `,
 
@@ -141,6 +169,12 @@ export async function getStats(tenantId: string) {
         count: Number(r.count),
       })),
       bySubjectDetail: bySubjectDetail.map((r) => ({
+        subject: r.subject,
+        count: Number(r.count),
+        thisMonth: Number(r.this_month),
+        authorCount: Number(r.author_count),
+      })),
+      byAiIctSubjectDetail: byAiIctSubjectDetail.map((r) => ({
         subject: r.subject,
         count: Number(r.count),
         thisMonth: Number(r.this_month),

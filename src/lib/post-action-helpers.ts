@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { subjectRequiredForCategory } from "@/lib/post-category";
 import { isCommonGradeOrSubjectSelection } from "@/lib/subject-grade-options";
 import {
   isAiIctLessonChecked,
@@ -78,7 +79,7 @@ function refineTransferReflection(
 export const postFields = z
   .object({
     tenantSlug: z.string().min(1),
-    category: z.enum(["授業", "業務改善", "AI・ICT活用"]),
+    category: z.enum(["授業", "AI・ICT活用"]),
     title: z.string().max(200).optional().nullable(),
     grade: z.string().max(80),
     subject: z.string().max(80),
@@ -102,7 +103,7 @@ export const postFields = z
         path: ["grade"],
       });
     }
-    if (isClassroomCategory && !data.subject.trim()) {
+    if (subjectRequiredForCategory(data.category) && !data.subject.trim()) {
       ctx.addIssue({
         code: "custom",
         message: "教科を選択してください",
@@ -130,7 +131,7 @@ export const postFields = z
 export const autosaveDraftFields = z.object({
   tenantSlug: z.string().min(1),
   postId: z.string().min(1),
-  category: z.enum(["授業", "業務改善", "AI・ICT活用"]),
+  category: z.enum(["授業", "AI・ICT活用"]),
   title: z.string().max(200).optional().nullable(),
   grade: z.string().max(80),
   subject: z.string().max(80),

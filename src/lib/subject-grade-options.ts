@@ -1,6 +1,9 @@
 /** 学年・教科に依存しない共通項目用のラベル */
 export const COMMON_GRADE_SUBJECT_LABEL = "共通" as const;
 
+/** AI/ICTカテゴリの教科欄先頭に置く業務改善（旧カテゴリから移行） */
+export const AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT = "業務改善" as const;
+
 /** 中学校の教科・学年選択肢（プロフィール編集・投稿フォームで共通） */
 export const GRADE_OPTIONS = [
   "1年",
@@ -26,6 +29,14 @@ export const SUBJECT_OPTIONS = [
   "授業準備",
   COMMON_GRADE_SUBJECT_LABEL,
 ] as const;
+
+/** カテゴリに応じた教科選択肢 */
+export function subjectOptionsForCategory(category: string): string[] {
+  if (category === "AI・ICT活用") {
+    return [AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT, ...SUBJECT_OPTIONS];
+  }
+  return [...SUBJECT_OPTIONS];
+}
 
 /** 学年または教科に「共通」が選ばれているか */
 export function isCommonGradeOrSubjectSelection(

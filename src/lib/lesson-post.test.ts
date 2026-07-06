@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aiIctPostsFilterHref,
   isLessonCategory,
   lessonPostsFilterHref,
   LESSON_CATEGORY,
@@ -31,6 +32,14 @@ describe("lessonPostsFilterHref", () => {
   it("includes lesson category and subject", () => {
     expect(lessonPostsFilterHref("demo", { subject: "国語" })).toBe(
       `/t/demo/posts?category=${encodeURIComponent(LESSON_CATEGORY)}&subject=${encodeURIComponent("国語")}`,
+    );
+  });
+});
+
+describe("aiIctPostsFilterHref", () => {
+  it("includes AI/ICT category and subject", () => {
+    expect(aiIctPostsFilterHref("demo", { subject: "業務改善" })).toBe(
+      `/t/demo/posts?category=${encodeURIComponent("AI・ICT活用")}&subject=${encodeURIComponent("業務改善")}`,
     );
   });
 });

@@ -3,7 +3,14 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { withTenantRls } from "@/lib/prisma-tenant";
 import { prisma } from "@/lib/prisma";
-import { COMMON_GRADE_SUBJECT_LABEL } from "@/lib/subject-grade-options";
+import {
+  AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
+  COMMON_GRADE_SUBJECT_LABEL,
+} from "@/lib/subject-grade-options";
+import {
+  AI_ICT_CATEGORY,
+  LEGACY_BUSINESS_IMPROVEMENT_CATEGORY,
+} from "@/lib/post-category";
 
 export type PostSearchParams = {
   q?: string;
@@ -71,7 +78,14 @@ export async function listPosts(
       filters.push({ subject: params.subject });
     }
   }
-  if (params.category) filters.push({ category: params.category });
+  if (params.category) {
+    if (params.category === LEGACY_BUSINESS_IMPROVEMENT_CATEGORY) {
+      filters.push({ category: AI_ICT_CATEGORY });
+      filters.push({ subject: AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT });
+    } else {
+      filters.push({ category: params.category });
+    }
+  }
   if (params.unit?.trim())
     filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });
   if (tag) filters.push({ tags: { some: { tag: { name: tag } } } });

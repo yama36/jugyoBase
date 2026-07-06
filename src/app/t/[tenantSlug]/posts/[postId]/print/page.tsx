@@ -9,6 +9,7 @@ import {
   getSubjectBadgeClasses,
   getUnitBadgeClasses,
 } from "@/lib/subject-grade-colors";
+import { getPostSectionLabels } from "@/lib/post-category";
 
 export default async function PostPrintPage({
   params,
@@ -28,28 +29,7 @@ export default async function PostPrintPage({
   const post = await getPost(tenantId, postId);
   if (!post) notFound();
 
-  const category = post.category ?? "授業";
-  const sectionLabels =
-    category === "業務改善"
-      ? {
-          aim: "課題・背景",
-          reflection: "効果・結果",
-          flow: "気をつける点",
-          point: "試みたこと（ツール名など）",
-        }
-      : category === "AI・ICT活用"
-        ? {
-            aim: "活用場面",
-            reflection: "よかった点・気をつけた点",
-            flow: "使ったプロンプト例",
-            point: "使用したAI・ツール名",
-          }
-        : {
-            aim: "めあて",
-            reflection: "振り返り",
-            flow: "授業の流れ",
-            point: "工夫した点（POINT）",
-          };
+  const sectionLabels = getPostSectionLabels(post.category, post.subject);
 
   const contentSections = [
     { title: sectionLabels.aim, value: post.aim },
