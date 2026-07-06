@@ -18,6 +18,7 @@ WORKDIR /app
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.1.1 --activate
 ENV NEXT_TELEMETRY_DISABLED=1
 # prisma generate / next build は実 DB 不要。スキーマ検証用のダミー。
 ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
