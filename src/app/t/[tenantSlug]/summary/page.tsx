@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/lib/queries/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import { categoryDisplayLabel, aiIctPostsFilterHref, lessonPostsFilterHref } from "@/lib/lesson-post";
+import { categoryDisplayLabel } from "@/lib/lesson-post";
 import {
   AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
   SUBJECT_OPTIONS,
@@ -42,7 +42,6 @@ function SubjectCard({
   barPercent,
   canCreatePost,
   inviteTone,
-  postsHref: postsHrefProp,
 }: {
   tenantSlug: string;
   subject: string;
@@ -52,11 +51,9 @@ function SubjectCard({
   barPercent: number;
   canCreatePost: boolean;
   inviteTone: boolean;
-  postsHref?: string;
 }) {
   const color = getSubjectBadgeClasses(subject);
-  const postsHref =
-    postsHrefProp ?? lessonPostsFilterHref(tenantSlug, { subject });
+  const postsHref = `/t/${tenantSlug}/posts?subject=${encodeURIComponent(subject)}`;
 
   const cardClass = `rounded-lg border p-4 shadow-sm transition hover:border-zinc-300 ${
     inviteTone
@@ -232,42 +229,30 @@ export default async function SubjectSummaryPage({
     stats.byCategoryDetail.map((row) => [row.category, row]),
   );
 
-  const knownSubjects = new Set<string>(SUBJECT_OPTIONS);
-  const extraSubjects = stats.bySubjectDetail
-    .map((row) => row.subject)
-    .filter((subject) => subject.trim() !== "" && !knownSubjects.has(subject));
-  const allSubjects = [...SUBJECT_OPTIONS, ...extraSubjects];
-
-  const subjectRows = allSubjects.map((subject) => {
-    const detail = detailBySubject.get(subject);
-    return {
-      subject,
-      count: detail?.count ?? 0,
-      thisMonth: detail?.thisMonth ?? 0,
-      authorCount: detail?.authorCount ?? 0,
-    };
-  });
-
-  const knownAiIctSubjects = new Set<string>([
+  const knownSubjects = new Set<string>([
     AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
     ...SUBJECT_OPTIONS,
   ]);
-  const extraAiIctSubjects = stats.byAiIctSubjectDetail
-    .map((row) => row.subject)
-    .filter((subject) => subject.trim() !== "" && !knownAiIctSubjects.has(subject));
-  const allAiIctSubjects = [
+  const extraSubjects = [
+    ...new Set([
+      ...stats.bySubjectDetail.map((row) => row.subject),
+      ...stats.byAiIctSubjectDetail.map((row) => row.subject),
+    ]),
+  ].filter((subject) => subject.trim() !== "" && !knownSubjects.has(subject));
+  const allSubjects = [
     AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT,
     ...SUBJECT_OPTIONS,
-    ...extraAiIctSubjects,
+    ...extraSubjects,
   ];
 
-  const aiIctSubjectRows = allAiIctSubjects.map((subject) => {
-    const detail = detailByAiIctSubject.get(subject);
+  const subjectRows = allSubjects.map((subject) => {
+    const lesson = detailBySubject.get(subject);
+    const aiIct = detailByAiIctSubject.get(subject);
     return {
       subject,
-      count: detail?.count ?? 0,
-      thisMonth: detail?.thisMonth ?? 0,
-      authorCount: detail?.authorCount ?? 0,
+      count: (lesson?.count ?? 0) + (aiIct?.count ?? 0),
+      thisMonth: (lesson?.thisMonth ?? 0) + (aiIct?.thisMonth ?? 0),
+      authorCount: (lesson?.authorCount ?? 0) + (aiIct?.authorCount ?? 0),
     };
   });
 
@@ -287,15 +272,10 @@ export default async function SubjectSummaryPage({
   };
 
   const maxSubjectCount = Math.max(...subjectRows.map((r) => r.count), 1);
-  const maxAiIctSubjectCount = Math.max(...aiIctSubjectRows.map((r) => r.count), 1);
   const subjectsWithPosts = subjectRows.filter((r) => r.count > 0).length;
 
   const inviteSubjects = subjectRows.filter((r) => r.count === 0);
   const growingSubjects = subjectRows
-    .filter((r) => r.count > 0)
-    .sort((a, b) => b.count - a.count);
-
-  const aiIctGrowingSubjects = aiIctSubjectRows
     .filter((r) => r.count > 0)
     .sort((a, b) => b.count - a.count);
 
@@ -349,30 +329,12 @@ export default async function SubjectSummaryPage({
                 barPercent={100}
                 canCreatePost={canCreatePost}
               />
-              {aiIctGrowingSubjects.map((row) => (
-                <SubjectCard
-                  key={`ai-ict-${row.subject}`}
-                  tenantSlug={tenantSlug}
-                  subject={row.subject}
-                  count={row.count}
-                  thisMonth={row.thisMonth}
-                  authorCount={row.authorCount}
-                  barPercent={
-                    maxAiIctSubjectCount > 0
-                      ? (row.count / maxAiIctSubjectCount) * 100
-                      : 0
-                  }
-                  canCreatePost={canCreatePost}
-                  inviteTone={false}
-                  postsHref={aiIctPostsFilterHref(tenantSlug, { subject: row.subject })}
-                />
-              ))}
             </ul>
           </section>
 
           {growingSubjects.length > 0 ? (
             <section className="space-y-4">
-              <h2 className="text-sm font-semibold text-zinc-800">教科別（授業）</h2>
+              <h2 className="text-sm font-semibold text-zinc-800">教科別</h2>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {growingSubjects.map((row) => (
                   <SubjectCard
