@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getPost } from "@/app/actions/posts";
-import { listComments } from "@/app/actions/comments";
-import { getPostLikeInfo } from "@/app/actions/likes";
-import { getPostTriedInfo } from "@/app/actions/tried";
-import { getBookmarkStatus } from "@/app/actions/bookmarks";
+import { getPost } from "@/lib/queries/posts";
+import { listComments } from "@/lib/queries/comments";
+import { getPostLikeInfo } from "@/lib/queries/likes";
+import { getPostTriedInfo } from "@/lib/queries/tried";
+import { getBookmarkStatus } from "@/lib/queries/bookmarks";
 import { DeletePostButton } from "@/components/DeletePostButton";
 import { LikeButton } from "@/components/LikeButton";
 import { TriedButton } from "@/components/TriedButton";
@@ -15,6 +15,7 @@ import { isS3Configured } from "@/lib/storage";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
+import { editButtonClass } from "@/lib/form-classes";
 
 export default async function PostDetailPage({
   params,
@@ -44,8 +45,8 @@ export default async function PostDetailPage({
   const [post, comments, likeInfo, triedInfo, bookmarked] = await Promise.all([
     getPost(tenantId, postId),
     listComments(tenantId, postId),
-    getPostLikeInfo(tenantId, postId, userId),
-    getPostTriedInfo(tenantId, postId, userId),
+    getPostLikeInfo(postId, userId),
+    getPostTriedInfo(postId, userId),
     getBookmarkStatus(postId, userId),
   ]);
   if (!post) notFound();
@@ -156,7 +157,7 @@ export default async function PostDetailPage({
               <>
                 <Link
                   href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
-                  className="cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                  className={editButtonClass}
                 >
                   編集
                 </Link>
@@ -190,7 +191,7 @@ export default async function PostDetailPage({
           ) : null}
           {post.tags.length > 0 ? (
             <ul className="contents">
-              {post.tags.map((pt: any) => (
+              {post.tags.map((pt) => (
                 <li
                   key={pt.tag.id}
                   className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800"
@@ -258,7 +259,7 @@ export default async function PostDetailPage({
           <p className="text-sm text-zinc-600">添付はありません</p>
         ) : (
           <ul className="space-y-2">
-            {post.attachments.map((a: any) => {
+            {post.attachments.map((a) => {
               const downloadable = a.malwareScanStatus === "clean";
               const rowClass =
                 "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition";
@@ -388,7 +389,7 @@ export default async function PostDetailPage({
                 <>
                   <Link
                     href={`/t/${tenantSlug}/posts/${postId}/edit?from=detail`}
-                    className="shrink-0 cursor-pointer rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+                    className={`shrink-0 ${editButtonClass}`}
                   >
                     編集
                   </Link>

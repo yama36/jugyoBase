@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { listPostSearchOptions, listPosts } from "@/app/actions/posts";
+import { listPostSearchOptions, listPosts } from "@/lib/queries/posts";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { isDemoTenantSlug } from "@/lib/demo-public";
-import { pickPostThumbAttachment } from "@/lib/post-thumb";
+import { pickPostThumbAttachment, postThumbKindLabel } from "@/lib/post-thumb";
 import { PostListThumbnail } from "@/components/PostListThumbnail";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
@@ -261,12 +261,12 @@ export default async function PostsPage({
                         </p>
                       ) : null}
                       <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
-                        <span>♥ {(post as any)._count?.likes ?? 0}</span>
-                        <span>試した {(post as any)._count?.tried ?? 0}</span>
-                        <span>💬 {(post as any)._count?.comments ?? 0}</span>
+                        <span>♥ {post._count?.likes ?? 0}</span>
+                        <span>試した {post._count?.tried ?? 0}</span>
+                        <span>💬 {post._count?.comments ?? 0}</span>
                         {thumbAttachment ? (
                           <span className="text-zinc-500">
-                            添付: {thumbAttachment.kind === "image" ? "画像" : "PDF"}
+                            添付: {postThumbKindLabel(thumbAttachment.kind)}
                           </span>
                         ) : null}
                       </div>

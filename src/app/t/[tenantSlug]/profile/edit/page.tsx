@@ -20,8 +20,8 @@ export default async function ProfileEditPage({
   const profile = await getMyProfile();
   if (!profile) redirect(`/t/${tenantSlug}/login`);
 
-  const currentSubjects = (profile as any).subjects as string[] ?? [];
-  const currentGrades = (profile as any).grades as string[] ?? [];
+  const currentSubjects = profile.subjects ?? [];
+  const currentGrades = profile.grades ?? [];
 
   return (
     <div className="space-y-6">
@@ -61,7 +61,7 @@ export default async function ProfileEditPage({
           <input
             name="position"
             type="text"
-            defaultValue={(profile as any).position ?? ""}
+            defaultValue={profile.position ?? ""}
             placeholder="例: 3年主任、理科主任"
             className="mt-1.5 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none"
           />
@@ -116,7 +116,7 @@ export default async function ProfileEditPage({
           <textarea
             name="bio"
             rows={3}
-            defaultValue={(profile as any).bio ?? ""}
+            defaultValue={profile.bio ?? ""}
             placeholder="得意分野や授業のこだわりなど"
             className="mt-1.5 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none"
           />

@@ -7,10 +7,11 @@ WORKDIR /app
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json ./
+RUN corepack enable && corepack prepare pnpm@11.1.1 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # postinstall が prisma generate を呼ぶため、スキーマだけ先に置く
 COPY prisma ./prisma
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
@@ -22,7 +23,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate && npm run build
+RUN npx prisma generate && pnpm run build
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
@@ -31,19 +32,20 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates curl \
+  && apt-get install -y --no-install-recommends openssl ca-certificates curl ffmpeg \
   && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.1.1 --activate
 
-# standalone はビルド時の Next と同じバイナリで動かす（runner で npm ci した next だと basePath が壊れる）
+# standalone はビルド時の Next と同じバイナリで動かす（runner で pnpm install した next だと basePath が壊れる）
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 # `docker compose run --rm app npx prisma migrate deploy` 用
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 # migrate deploy / db:seed（tsx prisma/seed.ts）用
-RUN npm install prisma@6.19.3 tsx@4.21.0 --no-save \
+RUN pnpm install prisma@6.19.3 tsx@4.21.0 --no-save \
   && npx prisma generate
 
 EXPOSE 3000

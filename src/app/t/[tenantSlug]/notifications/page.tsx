@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { auth } from "@/auth";
-import { listNotifications, submitMarkAllAsReadForm } from "@/app/actions/notifications";
+import { submitMarkAllAsReadForm } from "@/app/actions/notifications";
+import { listNotifications } from "@/lib/queries/notifications";
 import { prisma } from "@/lib/prisma";
 
 const TYPE_LABEL: Record<string, string> = {

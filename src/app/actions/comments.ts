@@ -4,16 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function listComments(tenantId: string, postId: string) {
-  return prisma.comment.findMany({
-    where: { postId, post: { tenantId } },
-    include: {
-      author: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-}
-
 export async function createComment(
   _prev: unknown,
   formData: FormData,

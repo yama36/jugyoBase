@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { auth } from "@/auth";
-import { getTenantSettings, submitTenantSettingsForm } from "@/app/actions/admin";
+import { submitTenantSettingsForm } from "@/app/actions/admin";
+import { getTenantSettings } from "@/lib/queries/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 const SCHOOL_TYPE_OPTIONS = [
@@ -46,8 +47,8 @@ export default async function AdminSettingsPage({
   const tenant = await getTenantSettings(session.user.tenantId);
   if (!tenant) redirect(`/t/${tenantSlug}/posts`);
 
-  const currentSchoolType = (tenant as any).schoolType ?? "elementary";
-  const currentPrefecture = (tenant as any).prefecture ?? "";
+  const currentSchoolType = tenant.schoolType ?? "elementary";
+  const currentPrefecture = tenant.prefecture ?? "";
 
   return (
     <div className="space-y-6">

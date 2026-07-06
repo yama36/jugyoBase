@@ -3,12 +3,12 @@
 import type { AttachmentKind, AttachmentMalwareScanStatus } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   deleteAttachment,
   presignUploadForPost,
   registerAttachment,
-} from "@/app/actions/posts";
+} from "@/app/actions/attachments";
 import {
   compressImageForUpload,
   shouldCompressImage,
@@ -174,6 +174,13 @@ export function AttachmentUploader(props: {
   const [attachments, setAttachments] = useState<AttachmentListItem[]>(
     () => props.initialAttachments ?? [],
   );
+  const [prevInitialAttachments, setPrevInitialAttachments] = useState(
+    props.initialAttachments,
+  );
+  if (props.initialAttachments !== prevInitialAttachments) {
+    setPrevInitialAttachments(props.initialAttachments);
+    setAttachments(props.initialAttachments ?? []);
+  }
   const [busy, setBusy] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(
@@ -182,10 +189,6 @@ export function AttachmentUploader(props: {
   const [phase, setPhase] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [failures, setFailures] = useState<UploadFailure[]>([]);
-
-  useEffect(() => {
-    setAttachments(props.initialAttachments ?? []);
-  }, [props.initialAttachments]);
 
   const extensionListHuman =
     ALLOWED_FILE_EXTENSIONS_FOR_INPUT.split(",").join("、");

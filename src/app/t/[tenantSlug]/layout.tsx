@@ -1,7 +1,7 @@
 import { PublicSiteFooter } from "@/components/site/PublicSiteFooter";
 import { TenantAppHeader } from "@/components/site/TenantAppHeader";
 import { auth } from "@/auth";
-import { getUnreadCount } from "@/app/actions/notifications";
+import { getUnreadCount } from "@/lib/queries/notifications";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 
 export default async function TenantLayout({

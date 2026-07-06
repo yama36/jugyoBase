@@ -14,7 +14,10 @@ export function PdfInlineViewer(props: {
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const onErrorRef = useRef(props.onError);
-  onErrorRef.current = props.onError;
+
+  useEffect(() => {
+    onErrorRef.current = props.onError;
+  }, [props.onError]);
 
   useEffect(() => {
     let objectUrl: string | null = null;

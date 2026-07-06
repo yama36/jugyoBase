@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
-import { getStats } from "@/app/actions/stats";
+import { getStats } from "@/lib/queries/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";

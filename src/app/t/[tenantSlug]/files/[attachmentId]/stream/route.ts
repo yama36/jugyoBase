@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { streamAttachmentObject } from "@/app/actions/posts";
+import { streamAttachmentObject } from "@/app/actions/attachments";
 
 /** PDF 埋め込み時は filename 付きだとブラウザがダウンロード扱いにすることがある */
 function contentDispositionForStream(

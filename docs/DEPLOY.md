@@ -180,7 +180,7 @@ docker run --rm --network host \
 
 ## 6. Next.js イメージのビルドと systemd 登録（Docker）
 
-アプリは **Docker イメージ**でビルドし、`deploy/docker-compose.prod.yml` の `app` サービスで起動する。ホストに Node で `npm run build` する方式は廃止した。
+アプリは **Docker イメージ**でビルドし、`deploy/docker-compose.prod.yml` の `app` サービスで起動する。ホストに Node で `pnpm run build` する方式は廃止した。
 
 ```bash
 # jugyobase ユーザ・/opt/jugyobase で
@@ -192,7 +192,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run 
 
 # 単元マスタ（CurriculumUnit）の初回投入（投稿フォームの単元候補に必要）
 # マイグレーションだけでは候補は空のまま。初回デプロイ時に一度実行する。
-docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npm run db:seed
+docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app pnpm run db:seed
 # 代替: 管理者でログイン後、/t/{tenantSlug}/admin/curriculum から単元を追加
 # seed で `spawn tsx ENOENT` が出る場合: `git pull` 後に `build app --no-cache`（runner 層が CACHED のまま古いことがある）。
 # 再ビルド前の一時回避: … run --rm app node --experimental-strip-types prisma/seed.ts
@@ -313,7 +313,7 @@ git pull
 # 本番のみ存在する /space 用の location が消えることがある。差分を確認してから reload する。
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production build app
 docker compose -f deploy/docker-compose.prod.yml --env-file .env.production run --rm app npx prisma migrate deploy
-# 単元マスタ未投入なら（初回のみ）: … run --rm app npm run db:seed
+# 単元マスタ未投入なら（初回のみ）: … run --rm app pnpm run db:seed
 exit
 sudo systemctl restart jugyobase
 # 上記は compose を stop してから up -d し直す。DB/MinIO も一度止まるが数秒で復帰する。

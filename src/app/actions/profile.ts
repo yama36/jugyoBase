@@ -32,7 +32,7 @@ export async function updateProfile(
   try {
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { name, bio, position, subjects, grades } as any,
+      data: { name, bio, position, subjects, grades },
     });
     const slug = session.user.tenantSlug!;
     revalidatePath(`/t/${slug}/mypage`);

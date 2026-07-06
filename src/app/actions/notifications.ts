@@ -4,21 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function listNotifications(userId: string) {
-  return prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: {
-      post: { select: { id: true, title: true, tenantId: true } },
-    },
-  });
-}
-
-export async function getUnreadCount(userId: string): Promise<number> {
-  return prisma.notification.count({ where: { userId, isRead: false } });
-}
-
 export async function markAllAsRead(tenantSlug: string): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) return;

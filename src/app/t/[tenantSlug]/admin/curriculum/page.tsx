@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import Link from "next/link";
 import { auth } from "@/auth";
 import {
   listCurriculumUnits,

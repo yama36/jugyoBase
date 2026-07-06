@@ -1,5 +1,6 @@
 "use server";
 
+import type { SchoolType, UserRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -17,14 +18,6 @@ async function requireAdmin(tenantSlug: string) {
     throw new Error("管理者権限が必要です");
   }
   return session;
-}
-
-export async function listTenantUsers(tenantId: string) {
-  return prisma.user.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-  });
 }
 
 export async function addUser(
@@ -59,7 +52,7 @@ export async function addUser(
         name: name ?? email.split("@")[0],
         tenantId: session.user.tenantId,
         tenantSlug,
-        role: role as any,
+        role: role as UserRole,
       },
     });
 
@@ -89,7 +82,7 @@ export async function updateUserRole(
     }
     await prisma.user.update({
       where: { id: userId, tenantId: session.user.tenantId },
-      data: { role: role as any },
+      data: { role },
     });
     revalidatePath(`/t/${tenantSlug}/admin/users`);
     return { ok: true };
@@ -197,18 +190,6 @@ export async function toggleCurriculumUnitActiveFromForm(
   return toggleCurriculumUnitActive(tenantSlug, unitId, isActive);
 }
 
-export async function getTenantSettings(tenantId: string) {
-  return prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: {
-      name: true,
-      schoolType: true,
-      prefecture: true,
-      googleHostedDomain: true,
-    },
-  });
-}
-
 export async function updateTenantSettings(
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -225,7 +206,7 @@ export async function updateTenantSettings(
     const session = await requireAdmin(tenantSlug);
     await prisma.tenant.update({
       where: { id: session.user.tenantId },
-      data: { name, schoolType: schoolType as any, prefecture, googleHostedDomain },
+      data: { name, schoolType: schoolType as SchoolType, prefecture, googleHostedDomain },
     });
     revalidatePath(`/t/${tenantSlug}/admin/settings`);
     return { ok: true };

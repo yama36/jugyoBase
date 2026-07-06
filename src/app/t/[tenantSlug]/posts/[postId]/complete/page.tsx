@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getPost } from "@/app/actions/posts";
+import { getPost } from "@/lib/queries/posts";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 

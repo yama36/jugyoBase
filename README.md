@@ -6,7 +6,7 @@
 
 - 本番では Next.js の **`basePath` が `/jugyobase`**（例: `https://identfill.com/jugyobase/t/{slug}/posts`）。ローカルでも `http://localhost:3000/jugyobase` からアクセスします。
 - テナント URL: `/t/{学校スラッグ}/…`（他校データは見えない）
-- **URL の学校スラッグとログイン中ユーザの所属テナントは常に一致している必要がある**（`npm run dev` でも本番と同じ）。別校のスラッグを開いた場合は middleware が、所属校の同じパスへリダイレクトする。
+- **URL の学校スラッグとログイン中ユーザの所属テナントは常に一致している必要がある**（`pnpm run dev` でも本番と同じ）。別校のスラッグを開いた場合は middleware が、所属校の同じパスへリダイレクトする。
 - Google ログイン（**事前登録メール**のみ、任意で `hd` ドメイン制限）。ログインに使うメールは、対象テナントに紐づく `User` 行が既に DB に存在している必要がある（初回から自動作成はしない）。
 - 投稿: カテゴリ（授業 / 業務改善 / AI・ICT活用）・タイトル（必須）。授業カテゴリでは学年・教科を必須、単元は条件付き必須。本文は4フィールドをカテゴリ別ラベルで流用し、参考URL（任意）を保存可能。閲覧専用ロール（`readonly`）は新規投稿不可。
 - **AI/ICT活用授業アンケート**（カテゴリ「授業」のみ）: フォーム下部の「この授業はAI/ICTを活用しました」を ON にすると、研究用の振り返り3項目（力・身につけた場面・動機）が表示され、公開投稿時は必須。回答は他教員には非公開（投稿詳細・PDFには出さない）。管理者は管理画面の「データエクスポート」から CSV 取得可能。
@@ -20,7 +20,7 @@
 ### 1. 依存関係
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. PostgreSQL
@@ -42,7 +42,7 @@ AUTH_GOOGLE_SECRET="（クライアントシークレット）"
 ### 3. マイグレーション
 
 ```bash
-npm run db:migrate
+pnpm run db:migrate
 ```
 
 ### 4. テナント・ユーザー作成
@@ -55,7 +55,7 @@ npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --ema
 npx tsx scripts/create-tenant-user.ts --slug demo --name "デモ小学校" --email you@demo.school.jp --domain demo.school.jp
 ```
 
-**デモ用シード**（`npm run db:seed`）では、テナント `slug=demo` とユーザ `demo-teacher@example.com` が upsert される。デモ校で Google ログインする場合は、このメール（または `create-tenant-user` で登録したメール）を OAuth で使い、Google Console 側のテストユーザ等も忘れずに。
+**デモ用シード**（`pnpm run db:seed`）では、テナント `slug=demo` とユーザ `demo-teacher@example.com` が upsert される。デモ校で Google ログインする場合は、このメール（または `create-tenant-user` で登録したメール）を OAuth で使い、Google Console 側のテストユーザ等も忘れずに。
 
 ### 5. ファイルストレージ（MinIO 例）
 
@@ -74,7 +74,7 @@ S3_ENDPOINT=http://127.0.0.1:9000
 ### 6. 開発サーバー
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ルート `http://localhost:3000/jugyobase` でテナントを選ぶか、`http://localhost:3000/jugyobase/t/{slug}/login` に直接アクセスしてログインします。
@@ -106,8 +106,8 @@ Google Cloud Console の OAuth 2.0 クライアントで、使うオリジンご
 
 | コマンド            | 説明                 |
 | ------------------- | -------------------- |
-| `npm run db:migrate` | `migrate deploy`     |
-| `npm run db:generate`| Prisma Client 生成   |
-| `npm run db:seed`    | デモテナント・中学校単元マスタ・`demo-teacher@example.com`（任意） |
-| `npm run tenant:create` | `tsx scripts/create-tenant-user.ts` の短縮 |
-| `npm run build`      | 本番ビルド           |
+| `pnpm run db:migrate` | `migrate deploy`     |
+| `pnpm run db:generate`| Prisma Client 生成   |
+| `pnpm run db:seed`    | デモテナント・中学校単元マスタ・`demo-teacher@example.com`（任意） |
+| `pnpm run tenant:create` | `tsx scripts/create-tenant-user.ts` の短縮 |
+| `pnpm run build`      | 本番ビルド           |

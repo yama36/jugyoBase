@@ -5,7 +5,7 @@ import {
   getPost,
   listCurriculumUnitOptions,
   listPostSearchOptions,
-} from "@/app/actions/posts";
+} from "@/lib/queries/posts";
 import { PostEditor } from "@/components/PostEditor";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 import { isS3Configured } from "@/lib/storage";

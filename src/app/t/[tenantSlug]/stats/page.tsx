@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
-import { getStats } from "@/app/actions/stats";
+import { getStats } from "@/lib/queries/stats";
 import { auth } from "@/auth";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 function BarChart({
   data,
-  labelKey,
   max,
 }: {
   data: { label: string; count: number }[];
-  labelKey?: string;
   max: number;
 }) {
   return (
@@ -118,9 +116,10 @@ export default async function StatsPage({
         {/* 教科別 */}
         {stats.bySubject.length > 0 ? (
           <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-zinc-800">
+            <h2 className="mb-1 text-sm font-semibold text-zinc-800">
               教科別投稿数
             </h2>
+            <p className="mb-4 text-xs text-zinc-500">授業カテゴリの投稿のみ</p>
             <BarChart
               data={stats.bySubject.map((d) => ({
                 label: d.subject,
@@ -134,9 +133,10 @@ export default async function StatsPage({
         {/* 学年別 */}
         {stats.byGrade.length > 0 ? (
           <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-zinc-800">
+            <h2 className="mb-1 text-sm font-semibold text-zinc-800">
               学年別投稿数
             </h2>
+            <p className="mb-4 text-xs text-zinc-500">授業カテゴリの投稿のみ</p>
             <BarChart
               data={stats.byGrade.map((d) => ({
                 label: d.grade,

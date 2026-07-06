@@ -1,15 +1,5 @@
 import { NextResponse } from "next/server";
-import { Readable } from "node:stream";
-import sharp from "sharp";
-import { getAttachmentDownloadUrl, streamAttachmentObject } from "@/app/actions/posts";
-
-async function readableToBuffer(body: import("stream").Readable): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of body) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
-}
+import { getAttachmentDownloadUrl, getAttachmentThumb } from "@/app/actions/attachments";
 
 export async function GET(
   req: Request,
@@ -20,45 +10,21 @@ export async function GET(
   const isThumb = url.searchParams.get("thumb") === "1";
 
   if (isThumb) {
-    const streamed = await streamAttachmentObject(tenantSlug, attachmentId);
-    if (!streamed.ok) {
+    const thumb = await getAttachmentThumb(tenantSlug, attachmentId);
+    if (!thumb.ok) {
       const status =
-        typeof streamed.httpStatus === "number" && streamed.httpStatus >= 400
-          ? streamed.httpStatus
+        typeof thumb.httpStatus === "number" && thumb.httpStatus >= 400
+          ? thumb.httpStatus
           : 404;
-      return new NextResponse(streamed.message, {
+      return new NextResponse(thumb.message, {
         status,
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }
 
-    const input = await readableToBuffer(streamed.body);
-
-    if (streamed.kind === "image") {
-      try {
-        const resized = await sharp(input)
-          .resize({ width: 192, withoutEnlargement: true })
-          .webp({ quality: 80 })
-          .toBuffer();
-        return new NextResponse(new Uint8Array(resized), {
-          headers: {
-            "Content-Type": "image/webp",
-            "Cache-Control": "private, max-age=31536000, immutable",
-          },
-        });
-      } catch {
-        return new NextResponse(new Uint8Array(input), {
-          headers: {
-            "Content-Type": streamed.contentType,
-            "Cache-Control": "private, max-age=31536000, immutable",
-          },
-        });
-      }
-    }
-
-    return new NextResponse(new Uint8Array(input), {
+    return new NextResponse(new Uint8Array(thumb.body), {
       headers: {
-        "Content-Type": streamed.contentType,
+        "Content-Type": thumb.contentType,
         "Cache-Control": "private, max-age=31536000, immutable",
       },
     });

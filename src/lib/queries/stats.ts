@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import { withTenantRls } from "@/lib/prisma-tenant";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +26,7 @@ export async function getStats(tenantId: string) {
           SELECT subject, COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
+            AND category = '授業'
             AND TRIM(subject) <> ''
           GROUP BY subject
           ORDER BY count DESC
@@ -48,6 +49,7 @@ export async function getStats(tenantId: string) {
             COUNT(DISTINCT "authorId") AS author_count
           FROM "Post"
           WHERE "isPublished" = true
+            AND category = '授業'
             AND TRIM(subject) <> ''
           GROUP BY subject
         `,
@@ -56,6 +58,8 @@ export async function getStats(tenantId: string) {
           SELECT grade, COUNT(*) AS count
           FROM "Post"
           WHERE "isPublished" = true
+            AND category = '授業'
+            AND TRIM(grade) <> ''
           GROUP BY grade
           ORDER BY grade ASC
         `,

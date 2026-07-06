@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getPost } from "@/app/actions/posts";
+import { getPost } from "@/lib/queries/posts";
 import { PrintButton } from "@/components/PrintButton";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { isDemoTenantSlug } from "@/lib/demo-public";
@@ -129,7 +129,7 @@ export default async function PostPrintPage({
           </p>
           {post.tags.length > 0 ? (
             <p className="text-xs text-zinc-500 print:text-black">
-              {post.tags.map((pt: any) => `#${pt.tag.name}`).join("  ")}
+              {post.tags.map((pt) => `#${pt.tag.name}`).join("  ")}
             </p>
           ) : null}
         </header>

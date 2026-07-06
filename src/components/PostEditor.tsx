@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { autosaveDraftPost, updatePost } from "@/app/actions/posts";
+import { autosaveDraftPost } from "@/app/actions/drafts";
+import { updatePost } from "@/app/actions/posts";
 import type { Attachment, Post, PostTag, Tag } from "@prisma/client";
-import type { CurriculumUnitOption } from "@/app/actions/posts";
+import type { CurriculumUnitOption } from "@/lib/queries/posts";
 import { PolicyChecklist } from "./PolicyChecklist";
 import {
   AttachmentUploader,
@@ -21,6 +22,12 @@ import {
   TRANSFER_SKILL_ORIGIN_OPTIONS,
   type TransferSkillOrigin,
 } from "@/lib/transfer-reflection";
+import {
+  formFieldClass,
+  formLabelClass,
+  formSelectClass,
+  formTextareaClass,
+} from "@/lib/form-classes";
 
 type PostWithTags = (Post & {
   contentItem?: string | null;
@@ -264,7 +271,7 @@ export function PostEditor(props: Props) {
         />
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             カテゴリ <span className="text-red-600">*</span>
           </label>
           <select
@@ -278,7 +285,7 @@ export function PostEditor(props: Props) {
                 setIsAiIctLesson(false);
               }
             }}
-            className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className={formSelectClass}
           >
             <option value="授業">授業</option>
             <option value="業務改善">業務改善</option>
@@ -287,7 +294,7 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             タイトル <span className="text-red-600">*</span>
           </label>
           <input
@@ -295,14 +302,14 @@ export function PostEditor(props: Props) {
             type="text"
             required
             defaultValue={p?.title ?? ""}
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formFieldClass}
             maxLength={200}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className={formLabelClass}>
               学年{" "}
               {gradeRequired ? (
                 <span className="text-red-600">*</span>
@@ -319,7 +326,7 @@ export function PostEditor(props: Props) {
                 setUnit("");
                 setUnitInputMode("select");
               }}
-              className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className={formSelectClass}
             >
               <option value="" disabled>
                 選択してください
@@ -332,7 +339,7 @@ export function PostEditor(props: Props) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className={formLabelClass}>
               教科{" "}
               {subjectRequired ? (
                 <span className="text-red-600">*</span>
@@ -349,7 +356,7 @@ export function PostEditor(props: Props) {
                 setUnit("");
                 setUnitInputMode("select");
               }}
-              className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className={formSelectClass}
             >
               <option value="" disabled>
                 選択してください
@@ -364,7 +371,7 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             単元{" "}
             {unitRequired ? (
               <span className="text-red-600">*</span>
@@ -383,7 +390,7 @@ export function PostEditor(props: Props) {
             <input
               disabled
               placeholder="先に学年と教科を選択してください"
-              className="mt-1 w-full rounded border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm disabled:cursor-not-allowed"
+              className={`${formFieldClass} bg-zinc-100 disabled:cursor-not-allowed`}
             />
           ) : (
             <div className="mt-2 space-y-2">
@@ -424,7 +431,7 @@ export function PostEditor(props: Props) {
                   required={unitRequired}
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
-                  className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  className={formSelectClass}
                 >
                   <option value="" disabled={unitRequired}>
                     {unitRequired ? "単元を選択してください" : "（未選択）"}
@@ -442,7 +449,7 @@ export function PostEditor(props: Props) {
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   placeholder={unitRequired ? "単元を入力" : "単元を入力（任意）"}
-                  className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  className={formFieldClass}
                 />
               )}
             </div>
@@ -450,7 +457,7 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             内容項目（任意）
           </label>
           <p className="mt-1 text-xs text-zinc-500">
@@ -468,49 +475,49 @@ export function PostEditor(props: Props) {
                 ? "先に学年と教科を選択してください"
                 : "例: 連立方程式（なければ空のままでも構いません）"
             }
-            className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-zinc-100"
+            className={`${formFieldClass} disabled:cursor-not-allowed disabled:bg-zinc-100`}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.aim}</label>
+          <label className={formLabelClass}>{sectionLabels.aim}</label>
           <textarea
             name="aim"
             rows={4}
             defaultValue={p?.aim ?? ""}
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formTextareaClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             {sectionLabels.reflection}
           </label>
           <textarea
             name="reflection"
             rows={4}
             defaultValue={p?.reflection ?? ""}
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formTextareaClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.point}</label>
+          <label className={formLabelClass}>{sectionLabels.point}</label>
           <textarea
             name="point"
             rows={3}
             defaultValue={p?.point ?? ""}
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formTextareaClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">{sectionLabels.flow}</label>
+          <label className={formLabelClass}>{sectionLabels.flow}</label>
           <textarea
             name="flow"
             rows={4}
             defaultValue={p?.flow ?? ""}
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formTextareaClass}
           />
         </div>
 
@@ -538,7 +545,7 @@ export function PostEditor(props: Props) {
                 授業の記録（上記のめあて・振り返りなど）はこれまでどおり共有されます。以下はアンケートとして別途保存されます。
               </p>
               <div>
-                <label className="block text-sm font-medium text-zinc-700">
+                <label className={formLabelClass}>
                   今回の授業で工夫できた・うまく使えたと感じる力{" "}
                   <span className="text-red-600">*</span>
                 </label>
@@ -552,7 +559,7 @@ export function PostEditor(props: Props) {
                   value={transferStrength}
                   onChange={(e) => setTransferStrength(e.target.value)}
                   placeholder="例：生徒の回答をその場で検証し、誤りを見つける力"
-                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  className={formTextareaClass}
                   maxLength={5000}
                 />
               </div>
@@ -583,7 +590,7 @@ export function PostEditor(props: Props) {
                 </div>
                 {needsOtherOriginNote ? (
                   <div className="mt-3">
-                    <label className="block text-sm font-medium text-zinc-700">
+                    <label className={formLabelClass}>
                       「その他」の補足 <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -593,7 +600,7 @@ export function PostEditor(props: Props) {
                       onChange={(e) => setTransferSkillOriginOther(e.target.value)}
                       required={transferReflectionRequired}
                       placeholder="例：部活動の顧問業務"
-                      className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                      className={formFieldClass}
                       maxLength={500}
                     />
                   </div>
@@ -601,7 +608,7 @@ export function PostEditor(props: Props) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700">
+                <label className={formLabelClass}>
                   なぜこの授業でその力・AI活用を使おうと思ったか{" "}
                   <span className="text-red-600">*</span>
                 </label>
@@ -612,7 +619,7 @@ export function PostEditor(props: Props) {
                   value={transferMotivation}
                   onChange={(e) => setTransferMotivation(e.target.value)}
                   placeholder="例：前回の振り返りで、生徒の思考を引き出す工夫が足りないと感じたため"
-                  className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm"
+                  className={formTextareaClass}
                   maxLength={5000}
                 />
               </div>
@@ -628,7 +635,7 @@ export function PostEditor(props: Props) {
         ) : null}
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             ハッシュタグ（#は不要。スペース・カンマ・読点などで区切り）
           </label>
           <p className="mt-1 text-xs text-zinc-500">
@@ -640,7 +647,7 @@ export function PostEditor(props: Props) {
             list="hashtag-suggestions"
             defaultValue={hashtagsInitial}
             placeholder="例: 協同学習 国語 振り返り"
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formFieldClass}
           />
           <datalist id="hashtag-suggestions">
             {props.hashtagSuggestions.map((tag) => (
@@ -650,7 +657,7 @@ export function PostEditor(props: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
+          <label className={formLabelClass}>
             参考URL（任意）
           </label>
           <input
@@ -658,7 +665,7 @@ export function PostEditor(props: Props) {
             type="url"
             defaultValue={(p as (Post & { referenceUrl?: string | null }) | null)?.referenceUrl ?? ""}
             placeholder="https://example.com/"
-            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
+            className={formFieldClass}
           />
         </div>
 

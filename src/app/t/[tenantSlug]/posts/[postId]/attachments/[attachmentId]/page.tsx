@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getAttachmentViewData } from "@/app/actions/posts";
+import { getAttachmentViewData } from "@/app/actions/attachments";
 import { AttachmentSiblingNav } from "@/components/AttachmentSiblingNav";
 import { AttachmentViewer } from "@/components/AttachmentViewer";
 import { isS3Configured } from "@/lib/storage";

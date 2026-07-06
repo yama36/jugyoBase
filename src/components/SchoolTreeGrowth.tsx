@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 const MILESTONES = [10, 20, 30, 50, 70, 100] as const;
 
@@ -164,7 +164,7 @@ const TREE_COMPONENTS = [TreeStage0, TreeStage1, TreeStage2, TreeStage3, TreeSta
 const CONFETTI_COLORS = ["#fbbf24", "#f472b6", "#34d399", "#60a5fa", "#a78bfa", "#fb923c"];
 
 function Confetti() {
-  const pieces = useRef(
+  const [pieces] = useState(() =>
     Array.from({ length: 36 }, (_, i) => ({
       id: i,
       left: `${(i / 36) * 100 + Math.random() * 2.5}%`,
@@ -174,7 +174,7 @@ function Confetti() {
       width: `${6 + Math.floor(Math.random() * 6)}px`,
       height: `${4 + Math.floor(Math.random() * 4)}px`,
     })),
-  ).current;
+  );
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">

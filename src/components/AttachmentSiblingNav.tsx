@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AttachmentSiblingRef } from "@/app/actions/posts";
+import type { AttachmentSiblingRef } from "@/app/actions/attachments";
 
 const KIND_LABEL = {
   pdf: "PDF",

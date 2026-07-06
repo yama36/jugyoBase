@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -77,6 +78,47 @@ export async function deleteObject(storageKey: string): Promise<void> {
     new DeleteObjectCommand({
       Bucket: process.env.S3_BUCKET!,
       Key: storageKey,
+    }),
+  );
+}
+
+export async function objectExists(storageKey: string): Promise<boolean> {
+  const client = getClient();
+  try {
+    await client.send(
+      new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET!,
+        Key: storageKey,
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getObjectBuffer(storageKey: string): Promise<Buffer> {
+  const streamed = await getObjectForStream(storageKey);
+  const chunks: Buffer[] = [];
+  for await (const chunk of streamed.body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+export async function putObject(params: {
+  storageKey: string;
+  body: Buffer;
+  contentType: string;
+}): Promise<void> {
+  const client = getClient();
+  await client.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET!,
+      Key: params.storageKey,
+      Body: params.body,
+      ContentType: params.contentType,
+      CacheControl: "private, max-age=31536000, immutable",
     }),
   );
 }

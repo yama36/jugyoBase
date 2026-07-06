@@ -12,8 +12,17 @@ export function pickPostThumbAttachment(
   const imageAttachment = list.find(
     (a) => a.kind === "image" && a.malwareScanStatus === "clean",
   );
+  const videoAttachment = list.find(
+    (a) => a.kind === "video" && a.malwareScanStatus === "clean",
+  );
   const pdfAttachment = list.find(
     (a) => a.kind === "pdf" && a.malwareScanStatus === "clean",
   );
-  return imageAttachment ?? pdfAttachment ?? null;
+  return imageAttachment ?? videoAttachment ?? pdfAttachment ?? null;
+}
+
+export function postThumbKindLabel(kind: PostThumbAttachment["kind"]): string {
+  if (kind === "image") return "画像";
+  if (kind === "video") return "動画";
+  return "PDF";
 }

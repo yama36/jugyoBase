@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 import { auth } from "@/auth";
-import { listTenantUsers, submitAddUserForm, submitUpdateUserRoleForm } from "@/app/actions/admin";
+import { submitAddUserForm, submitUpdateUserRoleForm } from "@/app/actions/admin";
+import { listTenantUsers } from "@/lib/queries/admin";
 import { RemoveUserButton } from "@/components/RemoveUserButton";
 import { AdminNav } from "@/components/admin/AdminNav";
 

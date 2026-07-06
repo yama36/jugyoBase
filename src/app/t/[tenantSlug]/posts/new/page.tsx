@@ -1,10 +1,10 @@
 import { PostEditor } from "@/components/PostEditor";
+import { createShellDraftPost } from "@/app/actions/drafts";
 import {
-  createShellDraftPost,
   getPost,
   listCurriculumUnitOptions,
   listPostSearchOptions,
-} from "@/app/actions/posts";
+} from "@/lib/queries/posts";
 import { auth } from "@/auth";
 import { isMalwareScanGateEnabled } from "@/lib/malware-scan";
 import { isS3Configured } from "@/lib/storage";
@@ -40,7 +40,7 @@ export default async function NewPostPage({
   ]);
 
   const initialAttachments =
-    draftPost?.attachments.map((a: any) => ({
+    draftPost?.attachments.map((a) => ({
       id: a.id,
       kind: a.kind,
       originalFilename: a.originalFilename,

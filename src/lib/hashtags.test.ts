@@ -1,42 +1,41 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, expect, it } from "vitest";
 import { parseHashtagInput } from "./hashtags";
 
 describe("parseHashtagInput", () => {
   it("splits on spaces", () => {
-    assert.deepEqual(parseHashtagInput("a b c"), ["a", "b", "c"]);
+    expect(parseHashtagInput("a b c")).toEqual(["a", "b", "c"]);
   });
 
   it("splits on commas", () => {
-    assert.deepEqual(parseHashtagInput("a,b,c"), ["a", "b", "c"]);
+    expect(parseHashtagInput("a,b,c")).toEqual(["a", "b", "c"]);
   });
 
   it("splits on comma with spaces", () => {
-    assert.deepEqual(parseHashtagInput("a, b"), ["a", "b"]);
+    expect(parseHashtagInput("a, b")).toEqual(["a", "b"]);
   });
 
   it("splits on fullwidth space", () => {
-    assert.deepEqual(parseHashtagInput("a　b"), ["a", "b"]);
+    expect(parseHashtagInput("a　b")).toEqual(["a", "b"]);
   });
 
   it("strips hash prefix", () => {
-    assert.deepEqual(parseHashtagInput("#a #b"), ["a", "b"]);
+    expect(parseHashtagInput("#a #b")).toEqual(["a", "b"]);
   });
 
   it("returns empty for empty input", () => {
-    assert.deepEqual(parseHashtagInput(""), []);
-    assert.deepEqual(parseHashtagInput("   "), []);
+    expect(parseHashtagInput("")).toEqual([]);
+    expect(parseHashtagInput("   ")).toEqual([]);
   });
 
   it("deduplicates tags", () => {
-    assert.deepEqual(parseHashtagInput("a a b"), ["a", "b"]);
+    expect(parseHashtagInput("a a b")).toEqual(["a", "b"]);
   });
 
   it("splits on semicolons and pipes", () => {
-    assert.deepEqual(parseHashtagInput("a;b|c"), ["a", "b", "c"]);
+    expect(parseHashtagInput("a;b|c")).toEqual(["a", "b", "c"]);
   });
 
   it("splits on slashes", () => {
-    assert.deepEqual(parseHashtagInput("a/b／c"), ["a", "b", "c"]);
+    expect(parseHashtagInput("a/b／c")).toEqual(["a", "b", "c"]);
   });
 });
