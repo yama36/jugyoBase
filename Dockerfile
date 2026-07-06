@@ -45,9 +45,9 @@ COPY --from=builder /app/.next/static ./.next/static
 # `docker compose run --rm app npx prisma migrate deploy` 用
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
-# migrate deploy / db:seed（tsx prisma/seed.ts）用
-RUN pnpm install prisma@6.19.3 tsx@4.21.0 --no-save \
-  && npx prisma generate
+# migrate deploy / db:seed（tsx prisma/seed.ts）用（pnpm 11 は --no-save 非対応）
+RUN pnpm add -D prisma@6.19.3 tsx@4.21.0 \
+  && pnpm exec prisma generate
 
 EXPOSE 3000
 CMD ["node", "server.js"]
