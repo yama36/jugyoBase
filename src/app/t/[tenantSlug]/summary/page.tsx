@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { getStats } from "@/lib/queries/stats";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
-import { lessonPostsFilterHref } from "@/lib/lesson-post";
+import { categoryDisplayLabel, lessonPostsFilterHref } from "@/lib/lesson-post";
 import { SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
 import { getSubjectBadgeClasses } from "@/lib/subject-grade-colors";
 import { SchoolTreeGrowth } from "@/components/SchoolTreeGrowth";
@@ -162,7 +162,7 @@ function CategoryCard({
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${color.wrapper}`}
           >
-            <span className={color.value}>{category}</span>
+            <span className={color.value}>{categoryDisplayLabel(category)}</span>
           </span>
           <span className="text-lg font-semibold text-zinc-900">{count}件</span>
         </div>
@@ -244,7 +244,7 @@ export default async function SubjectSummaryPage({
     };
   });
 
-  const categoryRows = ["業務改善", "AI・ICT活用"].map((cat) => {
+  const categoryRows = ["AI・ICT活用", "業務改善"].map((cat) => {
     const detail = detailByCategory.get(cat);
     return {
       category: cat,
@@ -301,7 +301,7 @@ export default async function SubjectSummaryPage({
         <>
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-zinc-800">
-              業務改善・AI・ICT活用
+              AI / ICT活用・業務改善
             </h2>
             <ul className="grid gap-3 sm:grid-cols-2">
               {categoryRows.map((row) => (

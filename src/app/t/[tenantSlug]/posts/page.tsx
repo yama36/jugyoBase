@@ -178,7 +178,7 @@ export default async function PostsPage({
               <option value="">指定なし</option>
               <option value="授業">授業</option>
               <option value="業務改善">業務改善</option>
-              <option value="AI・ICT活用">AI・ICT活用</option>
+              <option value="AI・ICT活用">AI / ICT活用</option>
             </select>
           </div>
           <div className="flex items-end gap-2 sm:col-span-2">

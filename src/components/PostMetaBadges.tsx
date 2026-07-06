@@ -4,6 +4,7 @@ import {
   getUnitBadgeClasses,
   NEUTRAL_BADGE_CLASSES,
 } from "@/lib/subject-grade-colors";
+import { categoryDisplayLabel } from "@/lib/lesson-post";
 
 type PostMetaBadgesProps = {
   category?: string | null;
@@ -45,7 +46,7 @@ export function PostMetaBadges({
         className={`inline-flex items-center gap-1.5 rounded-full text-xs ${padding} ${categoryColor.wrapper}`}
       >
         <span className={categoryColor.label}>カテゴリ</span>
-        <span className={categoryColor.value}>{category?.trim() || "授業"}</span>
+        <span className={categoryColor.value}>{categoryDisplayLabel(category)}</span>
       </span>
       {gradeText ? (
         <span
