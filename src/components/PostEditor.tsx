@@ -27,6 +27,7 @@ import {
   formLabelClass,
   formSelectClass,
   formTextareaClass,
+  formTextareaShortClass,
 } from "@/lib/form-classes";
 
 type PostWithTags = (Post & {
@@ -483,7 +484,7 @@ export function PostEditor(props: Props) {
           <label className={formLabelClass}>{sectionLabels.aim}</label>
           <textarea
             name="aim"
-            rows={4}
+            rows={5}
             defaultValue={p?.aim ?? ""}
             className={formTextareaClass}
           />
@@ -495,7 +496,7 @@ export function PostEditor(props: Props) {
           </label>
           <textarea
             name="reflection"
-            rows={4}
+            rows={5}
             defaultValue={p?.reflection ?? ""}
             className={formTextareaClass}
           />
@@ -505,7 +506,7 @@ export function PostEditor(props: Props) {
           <label className={formLabelClass}>{sectionLabels.point}</label>
           <textarea
             name="point"
-            rows={3}
+            rows={4}
             defaultValue={p?.point ?? ""}
             className={formTextareaClass}
           />
@@ -515,7 +516,7 @@ export function PostEditor(props: Props) {
           <label className={formLabelClass}>{sectionLabels.flow}</label>
           <textarea
             name="flow"
-            rows={4}
+            rows={5}
             defaultValue={p?.flow ?? ""}
             className={formTextareaClass}
           />
@@ -554,12 +555,12 @@ export function PostEditor(props: Props) {
                 </p>
                 <textarea
                   name="transferStrength"
-                  rows={3}
+                  rows={4}
                   required={transferReflectionRequired}
                   value={transferStrength}
                   onChange={(e) => setTransferStrength(e.target.value)}
                   placeholder="例：生徒の回答をその場で検証し、誤りを見つける力"
-                  className={formTextareaClass}
+                  className={formTextareaShortClass}
                   maxLength={5000}
                 />
               </div>
@@ -614,12 +615,12 @@ export function PostEditor(props: Props) {
                 </label>
                 <textarea
                   name="transferMotivation"
-                  rows={2}
+                  rows={3}
                   required={transferReflectionRequired}
                   value={transferMotivation}
                   onChange={(e) => setTransferMotivation(e.target.value)}
                   placeholder="例：前回の振り返りで、生徒の思考を引き出す工夫が足りないと感じたため"
-                  className={formTextareaClass}
+                  className={formTextareaShortClass}
                   maxLength={5000}
                 />
               </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { createComment, deleteComment } from "@/app/actions/comments";
+import { formTextareaShortClass } from "@/lib/form-classes";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type Comment = {
@@ -123,11 +124,11 @@ export function CommentSection({
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
           <textarea
             name="body"
-            rows={3}
+            rows={4}
             placeholder="コメントを入力…"
             maxLength={1000}
             required
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
+            className={formTextareaShortClass}
           />
           {state && !state.ok ? (
             <p className="text-xs text-red-600">{state.error}</p>

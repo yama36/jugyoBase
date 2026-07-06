@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { signOutFromApp } from "@/app/actions/auth";
 
@@ -14,39 +14,77 @@ type Props = {
   unreadCount: number;
 };
 
-function HamburgerIcon() {
+function MenuToggleIcon({ open }: { open: boolean }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-    >
-      <path
-        fillRule="evenodd"
-        d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-        clipRule="evenodd"
+    <span className="relative inline-block h-5 w-5" aria-hidden>
+      <span
+        className={`absolute left-0 block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+          open ? "top-[9px] rotate-45" : "top-0.5"
+        }`}
       />
-    </svg>
+      <span
+        className={`absolute left-0 top-[9px] block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+          open ? "scale-x-0 opacity-0" : "scale-x-100 opacity-100"
+        }`}
+      />
+      <span
+        className={`absolute left-0 block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+          open ? "top-[9px] -rotate-45" : "top-4"
+        }`}
+      />
+    </span>
   );
 }
 
-function CloseIcon() {
+function MobileMenuButton({
+  open,
+  onToggle,
+}: {
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      viewBox="0 0 20 20"
-      fill="currentColor"
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex h-10 w-10 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-100 sm:hidden"
+      aria-label={open ? "メニューを閉じる" : "メニューを開く"}
+      aria-expanded={open}
     >
-      <path
-        fillRule="evenodd"
-        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-        clipRule="evenodd"
-      />
-    </svg>
+      <MenuToggleIcon open={open} />
+    </button>
   );
 }
+
+function MobileMenuPanel({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <nav
+      className={`overflow-hidden border-zinc-100 transition-[max-height,opacity] duration-300 ease-in-out motion-reduce:transition-none sm:hidden ${
+        open
+          ? "max-h-[32rem] border-t opacity-100"
+          : "pointer-events-none max-h-0 border-t border-transparent opacity-0"
+      }`}
+      aria-label="メインメニュー"
+      aria-hidden={!open}
+    >
+      <div
+        className={`flex flex-col divide-y divide-zinc-100 px-4 text-sm text-zinc-700 transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
+          open ? "translate-y-0" : "-translate-y-2"
+        }`}
+      >
+        {children}
+      </div>
+    </nav>
+  );
+}
+
+const mobileLinkClass = "py-3.5 transition-colors hover:text-zinc-900";
 
 export function TenantAppHeader({
   tenantSlug,
@@ -58,6 +96,7 @@ export function TenantAppHeader({
 }: Props) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const toggle = () => setOpen((v) => !v);
 
   if (variant === "full") {
     return (
@@ -71,7 +110,6 @@ export function TenantAppHeader({
             jugyoBase
           </Link>
 
-          {/* デスクトップ横並びナビ */}
           <nav className="hidden flex-wrap items-center gap-4 text-sm text-zinc-700 sm:flex">
             <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
               事例一覧
@@ -122,96 +160,76 @@ export function TenantAppHeader({
             </form>
           </nav>
 
-          {/* モバイル：ハンバーガーボタン */}
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 sm:hidden"
-            aria-label={open ? "メニューを閉じる" : "メニューを開く"}
-            aria-expanded={open}
-          >
-            {open ? <CloseIcon /> : <HamburgerIcon />}
-          </button>
+          <MobileMenuButton open={open} onToggle={toggle} />
         </div>
 
-        {/* モバイルドロップダウンメニュー */}
-        {open ? (
-          <nav
-            className="border-t border-zinc-100 sm:hidden"
-            aria-label="メインメニュー"
+        <MobileMenuPanel open={open}>
+          <Link
+            href={`/t/${tenantSlug}/posts`}
+            onClick={close}
+            className={mobileLinkClass}
           >
-            <div className="flex flex-col divide-y divide-zinc-100 px-4 text-sm text-zinc-700">
-              <Link
-                href={`/t/${tenantSlug}/posts`}
-                onClick={close}
-                className="py-3 hover:text-zinc-900"
-              >
-                事例一覧
-              </Link>
-              {!isReadonly ? (
-                <Link
-                  href={`/t/${tenantSlug}/posts/new`}
-                  onClick={close}
-                  className="py-3 hover:text-zinc-900"
-                >
-                  新規投稿
-                </Link>
-              ) : null}
-              <Link
-                href={`/t/${tenantSlug}/mypage`}
-                onClick={close}
-                className="py-3 hover:text-zinc-900"
-              >
-                マイページ
-              </Link>
-              <Link
-                href={`/t/${tenantSlug}/summary`}
-                onClick={close}
-                className="py-3 hover:text-zinc-900"
-              >
-                教科別一覧
-              </Link>
-              {isAdmin ? (
-                <Link
-                  href={`/t/${tenantSlug}/stats`}
-                  onClick={close}
-                  className="py-3 hover:text-zinc-900"
-                >
-                  統計
-                </Link>
-              ) : null}
-              <Link
-                href={`/t/${tenantSlug}/notifications`}
-                onClick={close}
-                className="flex items-center gap-2 py-3 hover:text-zinc-900"
-              >
-                <span>🔔 通知</span>
-                {unreadCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                ) : null}
-              </Link>
-              {isAdmin ? (
-                <Link
-                  href={`/t/${tenantSlug}/admin/users`}
-                  onClick={close}
-                  className="py-3 font-medium text-purple-700"
-                >
-                  管理
-                </Link>
-              ) : null}
-              <form action={signOutFromApp} className="py-3">
-                <button
-                  type="submit"
-                  className="text-zinc-500 hover:text-zinc-900"
-                >
-                  ログアウト
-                </button>
-              </form>
-            </div>
-          </nav>
-        ) : null}
+            事例一覧
+          </Link>
+          {!isReadonly ? (
+            <Link
+              href={`/t/${tenantSlug}/posts/new`}
+              onClick={close}
+              className={mobileLinkClass}
+            >
+              新規投稿
+            </Link>
+          ) : null}
+          <Link
+            href={`/t/${tenantSlug}/mypage`}
+            onClick={close}
+            className={mobileLinkClass}
+          >
+            マイページ
+          </Link>
+          <Link
+            href={`/t/${tenantSlug}/summary`}
+            onClick={close}
+            className={mobileLinkClass}
+          >
+            教科別一覧
+          </Link>
+          {isAdmin ? (
+            <Link
+              href={`/t/${tenantSlug}/stats`}
+              onClick={close}
+              className={mobileLinkClass}
+            >
+              統計
+            </Link>
+          ) : null}
+          <Link
+            href={`/t/${tenantSlug}/notifications`}
+            onClick={close}
+            className={`flex items-center gap-2 ${mobileLinkClass}`}
+          >
+            <span>🔔 通知</span>
+            {unreadCount > 0 ? (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </Link>
+          {isAdmin ? (
+            <Link
+              href={`/t/${tenantSlug}/admin/users`}
+              onClick={close}
+              className={`${mobileLinkClass} font-medium text-purple-700`}
+            >
+              管理
+            </Link>
+          ) : null}
+          <form action={signOutFromApp} className="py-3.5">
+            <button type="submit" className="text-zinc-500 hover:text-zinc-900">
+              ログアウト
+            </button>
+          </form>
+        </MobileMenuPanel>
       </header>
     );
   }
@@ -228,7 +246,6 @@ export function TenantAppHeader({
           <span className="font-normal text-zinc-500">（デモ閲覧）</span>
         </Link>
 
-        {/* デスクトップナビ */}
         <nav className="hidden flex-wrap items-center gap-4 text-sm text-zinc-700 sm:flex">
           <Link href={`/t/${tenantSlug}/posts`} className="hover:text-zinc-900">
             事例一覧
@@ -249,51 +266,34 @@ export function TenantAppHeader({
           </Link>
         </nav>
 
-        {/* モバイル：ハンバーガーボタン */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 sm:hidden"
-          aria-label={open ? "メニューを閉じる" : "メニューを開く"}
-          aria-expanded={open}
-        >
-          {open ? <CloseIcon /> : <HamburgerIcon />}
-        </button>
+        <MobileMenuButton open={open} onToggle={toggle} />
       </div>
 
-      {/* モバイルドロップダウンメニュー */}
-      {open ? (
-        <nav
-          className="border-t border-zinc-100 sm:hidden"
-          aria-label="メインメニュー"
+      <MobileMenuPanel open={open}>
+        <Link
+          href={`/t/${tenantSlug}/posts`}
+          onClick={close}
+          className={mobileLinkClass}
         >
-          <div className="flex flex-col divide-y divide-zinc-100 px-4 text-sm text-zinc-700">
-            <Link
-              href={`/t/${tenantSlug}/posts`}
-              onClick={close}
-              className="py-3 hover:text-zinc-900"
-            >
-              事例一覧
-            </Link>
-            {sessionTenantSlug ? (
-              <Link
-                href={`/t/${sessionTenantSlug}/posts`}
-                onClick={close}
-                className="py-3 text-sky-700 hover:text-sky-900"
-              >
-                自分の学校へ
-              </Link>
-            ) : null}
-            <Link
-              href={`/t/${tenantSlug}/login`}
-              onClick={close}
-              className="py-3"
-            >
-              ログイン
-            </Link>
-          </div>
-        </nav>
-      ) : null}
+          事例一覧
+        </Link>
+        {sessionTenantSlug ? (
+          <Link
+            href={`/t/${sessionTenantSlug}/posts`}
+            onClick={close}
+            className={`${mobileLinkClass} text-sky-700 hover:text-sky-900`}
+          >
+            自分の学校へ
+          </Link>
+        ) : null}
+        <Link
+          href={`/t/${tenantSlug}/login`}
+          onClick={close}
+          className={mobileLinkClass}
+        >
+          ログイン
+        </Link>
+      </MobileMenuPanel>
     </header>
   );
 }

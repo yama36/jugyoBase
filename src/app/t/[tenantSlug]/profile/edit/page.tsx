@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getMyProfile, submitProfileForm } from "@/app/actions/profile";
 import { GRADE_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subject-grade-options";
+import { formTextareaShortClass } from "@/lib/form-classes";
 import { canAccessTenantRoute } from "@/lib/tenant-route-access";
 
 export default async function ProfileEditPage({
@@ -115,10 +116,10 @@ export default async function ProfileEditPage({
           </label>
           <textarea
             name="bio"
-            rows={3}
+            rows={4}
             defaultValue={profile.bio ?? ""}
             placeholder="得意分野や授業のこだわりなど"
-            className="mt-1.5 w-full rounded border border-zinc-300 px-3 py-2 text-sm focus:outline-none"
+            className={formTextareaShortClass}
           />
         </div>
 
