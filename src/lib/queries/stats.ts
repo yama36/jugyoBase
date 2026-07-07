@@ -42,6 +42,7 @@ export async function getStats(tenantId: string) {
             count: bigint;
             this_month: bigint;
             author_count: bigint;
+            latest_post_at: Date | null;
           }[]
         >`
           SELECT
@@ -53,7 +54,8 @@ export async function getStats(tenantId: string) {
             COUNT(*) FILTER (
               WHERE DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', NOW())
             ) AS this_month,
-            COUNT(DISTINCT "authorId") AS author_count
+            COUNT(DISTINCT "authorId") AS author_count,
+            MAX("createdAt") AS latest_post_at
           FROM "Post"
           WHERE "isPublished" = true
             AND COALESCE(category, '授業') = '授業'
@@ -66,6 +68,7 @@ export async function getStats(tenantId: string) {
             count: bigint;
             this_month: bigint;
             author_count: bigint;
+            latest_post_at: Date | null;
           }[]
         >`
           SELECT
@@ -78,7 +81,8 @@ export async function getStats(tenantId: string) {
             COUNT(*) FILTER (
               WHERE DATE_TRUNC('month', "createdAt") = DATE_TRUNC('month', NOW())
             ) AS this_month,
-            COUNT(DISTINCT "authorId") AS author_count
+            COUNT(DISTINCT "authorId") AS author_count,
+            MAX("createdAt") AS latest_post_at
           FROM "Post"
           WHERE "isPublished" = true
             AND (
@@ -173,12 +177,14 @@ export async function getStats(tenantId: string) {
         count: Number(r.count),
         thisMonth: Number(r.this_month),
         authorCount: Number(r.author_count),
+        latestPostAt: r.latest_post_at,
       })),
       byAiIctSubjectDetail: byAiIctSubjectDetail.map((r) => ({
         subject: r.subject,
         count: Number(r.count),
         thisMonth: Number(r.this_month),
         authorCount: Number(r.author_count),
+        latestPostAt: r.latest_post_at,
       })),
       byGrade: byGrade.map((r) => ({
         grade: r.grade,

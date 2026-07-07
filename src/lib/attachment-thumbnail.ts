@@ -28,7 +28,7 @@ export function buildAttachmentThumbStorageKey(
 }
 
 export function isThumbGeneratableKind(kind: AttachmentKind): boolean {
-  return kind === "image" || kind === "video";
+  return kind === "image" || kind === "video" || kind === "pdf";
 }
 
 async function resizeToWebpThumb(input: Buffer): Promise<Buffer> {
@@ -36,6 +36,37 @@ async function resizeToWebpThumb(input: Buffer): Promise<Buffer> {
     .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
     .webp({ quality: 80 })
     .toBuffer();
+}
+
+async function extractPdfFirstPage(pdfBuffer: Buffer): Promise<Buffer> {
+  const id = randomUUID();
+  const inputPath = join(tmpdir(), `jugyobase-pdf-in-${id}.pdf`);
+  const outputPath = join(tmpdir(), `jugyobase-pdf-out-${id}.jpg`);
+  try {
+    await writeFile(inputPath, pdfBuffer);
+    await execFileAsync(
+      "pdftoppm",
+      [
+        "-hide_banner",
+        "-f",
+        "1",
+        "-l",
+        "1",
+        "-jpeg",
+        "-singlefile",
+        "-scale-to",
+        String(THUMB_WIDTH),
+        inputPath,
+        outputPath.replace(/\.jpg$/, ""),
+      ],
+      { timeout: 60_000 },
+    );
+    const frame = await sharp(outputPath).toBuffer();
+    return resizeToWebpThumb(frame);
+  } finally {
+    await unlink(inputPath).catch(() => {});
+    await unlink(outputPath).catch(() => {});
+  }
 }
 
 async function extractVideoFrame(videoBuffer: Buffer): Promise<Buffer> {
@@ -80,6 +111,9 @@ async function generateThumbBuffer(
   }
   if (kind === "video") {
     return extractVideoFrame(original);
+  }
+  if (kind === "pdf") {
+    return extractPdfFirstPage(original);
   }
   throw new Error("Unsupported attachment kind for thumbnail");
 }

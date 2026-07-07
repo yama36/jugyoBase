@@ -248,11 +248,15 @@ export default async function SubjectSummaryPage({
   const subjectRows = allSubjects.map((subject) => {
     const lesson = detailBySubject.get(subject);
     const aiIct = detailByAiIctSubject.get(subject);
+    const latestPostAt = [lesson?.latestPostAt, aiIct?.latestPostAt]
+      .filter((value): value is Date => value instanceof Date)
+      .sort((a, b) => b.getTime() - a.getTime())[0];
     return {
       subject,
       count: (lesson?.count ?? 0) + (aiIct?.count ?? 0),
       thisMonth: (lesson?.thisMonth ?? 0) + (aiIct?.thisMonth ?? 0),
       authorCount: (lesson?.authorCount ?? 0) + (aiIct?.authorCount ?? 0),
+      latestPostAt,
     };
   });
 
@@ -277,7 +281,11 @@ export default async function SubjectSummaryPage({
   const inviteSubjects = subjectRows.filter((r) => r.count === 0);
   const growingSubjects = subjectRows
     .filter((r) => r.count > 0)
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => {
+      const aTime = a.latestPostAt?.getTime() ?? 0;
+      const bTime = b.latestPostAt?.getTime() ?? 0;
+      return bTime - aTime;
+    });
 
   const canCreatePost =
     session.user.tenantSlug === tenantSlug &&
