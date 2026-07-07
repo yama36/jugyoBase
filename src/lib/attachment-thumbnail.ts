@@ -47,7 +47,6 @@ async function extractPdfFirstPage(pdfBuffer: Buffer): Promise<Buffer> {
     await execFileAsync(
       "pdftoppm",
       [
-        "-hide_banner",
         "-f",
         "1",
         "-l",
