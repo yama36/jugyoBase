@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pickPostThumbAttachment, postThumbKindLabel } from "./post-thumb";
 
-const clean = (kind: "image" | "pdf" | "video", id: string) => ({
+const clean = (kind: "image" | "pdf" | "slide" | "video", id: string) => ({
   id,
   kind,
   originalFilename: `${id}.bin`,
@@ -24,6 +24,11 @@ describe("pickPostThumbAttachment", () => {
       clean("video", "v1"),
     ]);
     expect(picked?.id).toBe("v1");
+  });
+
+  it("falls back to slide when no image, video, or pdf", () => {
+    const picked = pickPostThumbAttachment([clean("slide", "s1")]);
+    expect(picked?.id).toBe("s1");
   });
 
   it("skips non-clean attachments", () => {

@@ -444,6 +444,7 @@ export async function getAttachmentThumb(
       attachmentId,
       kind: row.kind,
       originalStorageKey: row.storageKey,
+      originalFilename: row.originalFilename,
     });
     return { ok: true, body, contentType: ATTACHMENT_THUMB_CONTENT_TYPE };
   } catch {

@@ -15,7 +15,8 @@ export function PostListThumbnail({
   const canRenderThumb =
     attachment.kind === "image" ||
     attachment.kind === "video" ||
-    attachment.kind === "pdf";
+    attachment.kind === "pdf" ||
+    attachment.kind === "slide";
 
   return (
     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
@@ -37,6 +38,11 @@ export function PostListThumbnail({
           {attachment.kind === "pdf" ? (
             <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-medium text-white">
               PDF
+            </span>
+          ) : null}
+          {attachment.kind === "slide" ? (
+            <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-medium text-white">
+              スライド
             </span>
           ) : null}
         </>

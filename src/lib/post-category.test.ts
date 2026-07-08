@@ -56,6 +56,7 @@ describe("getPostSectionLabels", () => {
   it("uses AI/ICT labels for other subjects", () => {
     const labels = getPostSectionLabels(AI_ICT_CATEGORY, "国語");
     expect(labels.aim).toBe("活用場面");
+    expect(labels.flow).toBe("実践方法(使用したプロンプトなど)");
   });
 });
 

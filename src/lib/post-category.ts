@@ -79,7 +79,7 @@ export function getPostSectionLabels(
       aim: "活用場面",
       reflection: "よかった点・気をつけた点",
       point: "使用したAI・ツール名",
-      flow: "使ったプロンプト例",
+      flow: "実践方法(使用したプロンプトなど)",
     };
   }
   return {

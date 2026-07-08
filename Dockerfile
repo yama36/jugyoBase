@@ -33,7 +33,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates curl ffmpeg poppler-utils \
+  && apt-get install -y --no-install-recommends openssl ca-certificates curl ffmpeg poppler-utils unzip libreoffice-impress \
   && rm -rf /var/lib/apt/lists/*
 
 # standalone はビルド時の Next と同じバイナリで動かす（runner で pnpm install した next だと basePath が壊れる）
