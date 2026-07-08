@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { listPostSearchOptions, listPosts } from "@/lib/queries/posts";
+import { listPostSearchOptions, listPostsPage } from "@/lib/queries/posts";
 import { resolveViewTenantId } from "@/lib/resolve-view-tenant";
 import { isDemoTenantSlug } from "@/lib/demo-public";
 import { pickPostThumbAttachment, postThumbKindLabel } from "@/lib/post-thumb";
+import {
+  parsePostListPage,
+  parsePostListPerPage,
+  type PostListFilterParams,
+} from "@/lib/post-list-pagination";
+import { PostListPagination } from "@/components/PostListPagination";
 import { PostListThumbnail } from "@/components/PostListThumbnail";
+import { PostListToolbar } from "@/components/PostListToolbar";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
 
@@ -38,18 +45,28 @@ export default async function PostsPage({
   const unit = typeof sp.unit === "string" ? sp.unit : undefined;
   const tag = typeof sp.tag === "string" ? sp.tag : undefined;
   const category = typeof sp.category === "string" ? sp.category : undefined;
+  const page = parsePostListPage(typeof sp.page === "string" ? sp.page : undefined);
+  const per = parsePostListPerPage(typeof sp.per === "string" ? sp.per : undefined);
 
-  const [posts, options] = await Promise.all([
-    listPosts(tenantId, {
-      q,
-      grade,
-      subject,
-      unit,
-      tag,
-      category,
+  const filters: PostListFilterParams = {
+    q,
+    grade,
+    subject,
+    unit,
+    tag,
+    category,
+  };
+
+  const [listResult, options] = await Promise.all([
+    listPostsPage(tenantId, {
+      ...filters,
+      page,
+      perPage: per,
     }),
     listPostSearchOptions(tenantId),
   ]);
+  const { posts, totalCount, totalPages } = listResult;
+  const currentPage = listResult.page;
   const hasSearchParams = Boolean(q || grade || subject || unit || tag || category);
 
   return (
@@ -181,6 +198,7 @@ export default async function PostsPage({
             </select>
           </div>
           <div className="flex items-end gap-2 sm:col-span-2">
+            {per !== 30 ? <input type="hidden" name="per" value={per} /> : null}
             <button
               type="submit"
               className="rounded bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
@@ -196,6 +214,17 @@ export default async function PostsPage({
           </div>
         </form>
       </details>
+
+      {posts.length > 0 || totalCount > 0 ? (
+        <PostListToolbar
+          tenantSlug={tenantSlug}
+          filters={filters}
+          per={per}
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+        />
+      ) : null}
 
       <ul className="space-y-3">
         {posts.length === 0 ? (
@@ -277,6 +306,14 @@ export default async function PostsPage({
           })
         )}
       </ul>
+
+      <PostListPagination
+        tenantSlug={tenantSlug}
+        filters={filters}
+        per={per}
+        page={currentPage}
+        totalPages={totalPages}
+      />
     </div>
   );
 }

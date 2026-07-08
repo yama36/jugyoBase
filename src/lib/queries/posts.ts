@@ -8,6 +8,10 @@ import {
   COMMON_GRADE_SUBJECT_LABEL,
 } from "@/lib/subject-grade-options";
 import {
+  clampPostListPage,
+  totalPostListPages,
+} from "@/lib/post-list-pagination";
+import {
   AI_ICT_CATEGORY,
   LEGACY_BUSINESS_IMPROVEMENT_CATEGORY,
 } from "@/lib/post-category";
@@ -21,7 +25,94 @@ export type PostSearchParams = {
   category?: string;
   authorId?: string;
   includeDrafts?: boolean;
+  page?: number;
+  perPage?: number;
 };
+
+export type PostListPageResult = {
+  posts: PostListItem[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+};
+
+function buildPostListWhereInput(params: PostSearchParams): Prisma.PostWhereInput {
+  const q = params.q?.trim();
+  const tag = params.tag?.trim().toLowerCase();
+
+  const filters: Prisma.PostWhereInput[] = [];
+  if (!params.includeDrafts) filters.push({ isPublished: true });
+  if (params.grade) filters.push({ grade: params.grade });
+  if (params.subject) {
+    if (params.subject === COMMON_GRADE_SUBJECT_LABEL) {
+      filters.push({
+        OR: [{ subject: COMMON_GRADE_SUBJECT_LABEL }, { subject: "" }],
+      });
+    } else {
+      filters.push({ subject: params.subject });
+    }
+  }
+  if (params.category) {
+    if (params.category === LEGACY_BUSINESS_IMPROVEMENT_CATEGORY) {
+      filters.push({ category: AI_ICT_CATEGORY });
+      filters.push({ subject: AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT });
+    } else {
+      filters.push({ category: params.category });
+    }
+  }
+  if (params.unit?.trim())
+    filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });
+  if (tag) filters.push({ tags: { some: { tag: { name: tag } } } });
+  if (params.authorId) filters.push({ authorId: params.authorId });
+  if (q) {
+    filters.push({
+      OR: [
+        { searchText: { contains: q, mode: "insensitive" } },
+        { title: { contains: q, mode: "insensitive" } },
+        { unit: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  return filters.length ? { AND: filters } : {};
+}
+
+async function enrichPostsWithCurriculumOptions(
+  tx: Parameters<Parameters<typeof withTenantRls>[1]>[0],
+  posts: Prisma.PostGetPayload<{ include: typeof postListInclude }>[],
+): Promise<PostListItem[]> {
+  const pairs = Array.from(
+    new Set(
+      posts
+        .filter((post) => post.grade.trim() && post.subject.trim())
+        .map((post) => `${post.grade}:::${post.subject}`),
+    ),
+  ).map((key) => {
+    const [grade, subject] = key.split(":::");
+    return { grade, subject };
+  });
+  if (pairs.length === 0) {
+    return posts.map((post) => ({ ...post, hasCurriculumUnitOptions: false })) as PostListItem[];
+  }
+  const curriculumPairs = await tx.curriculumUnit.findMany({
+    where: {
+      schoolType: "junior_high",
+      isActive: true,
+      OR: pairs,
+    },
+    select: { grade: true, subject: true },
+    distinct: ["grade", "subject"],
+  });
+  const curriculumPairSet = new Set(
+    curriculumPairs.map((pair) => `${pair.grade}:::${pair.subject}`),
+  );
+
+  return posts.map((post) => ({
+    ...post,
+    hasCurriculumUnitOptions: curriculumPairSet.has(`${post.grade}:::${post.subject}`),
+  })) as PostListItem[];
+}
 
 export type CurriculumUnitOption = {
   grade: string;
@@ -63,80 +154,48 @@ export async function listPosts(
   tenantId: string,
   params: PostSearchParams,
 ): Promise<PostListItem[]> {
-  const q = params.q?.trim();
-  const tag = params.tag?.trim().toLowerCase();
-
-  const filters: Prisma.PostWhereInput[] = [];
-  if (!params.includeDrafts) filters.push({ isPublished: true });
-  if (params.grade) filters.push({ grade: params.grade });
-  if (params.subject) {
-    if (params.subject === COMMON_GRADE_SUBJECT_LABEL) {
-      filters.push({
-        OR: [{ subject: COMMON_GRADE_SUBJECT_LABEL }, { subject: "" }],
-      });
-    } else {
-      filters.push({ subject: params.subject });
-    }
-  }
-  if (params.category) {
-    if (params.category === LEGACY_BUSINESS_IMPROVEMENT_CATEGORY) {
-      filters.push({ category: AI_ICT_CATEGORY });
-      filters.push({ subject: AI_ICT_BUSINESS_IMPROVEMENT_SUBJECT });
-    } else {
-      filters.push({ category: params.category });
-    }
-  }
-  if (params.unit?.trim())
-    filters.push({ unit: { contains: params.unit.trim(), mode: "insensitive" } });
-  if (tag) filters.push({ tags: { some: { tag: { name: tag } } } });
-  if (params.authorId) filters.push({ authorId: params.authorId });
-  if (q) {
-    filters.push({
-      OR: [
-        { searchText: { contains: q, mode: "insensitive" } },
-        { title: { contains: q, mode: "insensitive" } },
-        { unit: { contains: q, mode: "insensitive" } },
-      ],
-    });
-  }
+  const where = buildPostListWhereInput(params);
 
   return withTenantRls(tenantId, async (tx) => {
     const posts = await tx.post.findMany({
-      where: filters.length ? { AND: filters } : {},
+      where,
       orderBy: { createdAt: "desc" },
       include: postListInclude,
     });
 
-    const pairs = Array.from(
-      new Set(
-        posts
-          .filter((post) => post.grade.trim() && post.subject.trim())
-          .map((post) => `${post.grade}:::${post.subject}`),
-      ),
-    ).map((key) => {
-      const [grade, subject] = key.split(":::");
-      return { grade, subject };
-    });
-    if (pairs.length === 0) {
-      return posts.map((post) => ({ ...post, hasCurriculumUnitOptions: false })) as PostListItem[];
-    }
-    const curriculumPairs = await tx.curriculumUnit.findMany({
-      where: {
-        schoolType: "junior_high",
-        isActive: true,
-        OR: pairs,
-      },
-      select: { grade: true, subject: true },
-      distinct: ["grade", "subject"],
-    });
-    const curriculumPairSet = new Set(
-      curriculumPairs.map((pair) => `${pair.grade}:::${pair.subject}`),
-    );
+    return enrichPostsWithCurriculumOptions(tx, posts);
+  });
+}
 
-    return posts.map((post) => ({
-      ...post,
-      hasCurriculumUnitOptions: curriculumPairSet.has(`${post.grade}:::${post.subject}`),
-    })) as PostListItem[];
+export async function listPostsPage(
+  tenantId: string,
+  params: PostSearchParams & { page: number; perPage: number },
+): Promise<PostListPageResult> {
+  const where = buildPostListWhereInput(params);
+  const requestedPage = params.page;
+  const perPage = params.perPage;
+
+  return withTenantRls(tenantId, async (tx) => {
+    const totalCount = await tx.post.count({ where });
+    const totalPages = totalPostListPages(totalCount, perPage);
+    const page = clampPostListPage(requestedPage, totalPages);
+    const skip = (page - 1) * perPage;
+
+    const posts = await tx.post.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: postListInclude,
+      skip,
+      take: perPage,
+    });
+
+    return {
+      posts: await enrichPostsWithCurriculumOptions(tx, posts),
+      totalCount,
+      page,
+      perPage,
+      totalPages,
+    };
   });
 }
 
