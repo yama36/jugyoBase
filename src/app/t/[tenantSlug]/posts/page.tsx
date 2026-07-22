@@ -17,6 +17,7 @@ import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusChip } from "@/components/StatusChip";
+import { isAiIctCategory } from "@/lib/post-category";
 
 export default async function PostsPage({
   params,
@@ -71,6 +72,8 @@ export default async function PostsPage({
   const currentPage = listResult.page;
   const hasSearchParams = Boolean(q || grade || subject || unit || tag || category);
 
+  const showListMeta = posts.length > 0 || totalCount > 0;
+
   return (
     <div className="space-y-8">
       <div className="space-y-0">
@@ -95,16 +98,16 @@ export default async function PostsPage({
 
       <details
         open={hasSearchParams}
-        className="group rounded-lg border border-zinc-200 bg-white"
+        className="group -mt-4 rounded-lg border border-zinc-200 bg-white"
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
-          <span className="flex items-center gap-2">
+        <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50">
+          <span className="flex min-w-0 items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
               aria-hidden="true"
-              className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90"
+              className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
             >
               <path
                 fillRule="evenodd"
@@ -118,11 +121,22 @@ export default async function PostsPage({
                 条件あり
               </span>
             ) : null}
+            <span className="text-xs font-normal text-zinc-500">
+              <span className="group-open:hidden">開く</span>
+              <span className="hidden group-open:inline">閉じる</span>
+            </span>
           </span>
-          <span className="text-xs text-zinc-500">
-            <span className="group-open:hidden">開く</span>
-            <span className="hidden group-open:inline">閉じる</span>
-          </span>
+          {showListMeta ? (
+            <PostListToolbar
+              tenantSlug={tenantSlug}
+              filters={filters}
+              per={per}
+              page={currentPage}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              embedded
+            />
+          ) : null}
         </summary>
         <form method="get" className="grid gap-3 border-t border-zinc-200 p-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -196,7 +210,7 @@ export default async function PostsPage({
             >
               <option value="">指定なし</option>
               <option value="授業">授業</option>
-              <option value="AI・ICT活用">AI / ICT活用(授業での活用含む)</option>
+              <option value="AI・ICT活用">AI / ICT活用</option>
             </select>
           </div>
           <div className="flex items-end gap-2 sm:col-span-2">
@@ -216,17 +230,6 @@ export default async function PostsPage({
           </div>
         </form>
       </details>
-
-      {posts.length > 0 || totalCount > 0 ? (
-        <PostListToolbar
-          tenantSlug={tenantSlug}
-          filters={filters}
-          per={per}
-          page={currentPage}
-          totalPages={totalPages}
-          totalCount={totalCount}
-        />
-      ) : null}
 
       <ul className="space-y-3">
         {posts.length === 0 ? (
@@ -288,7 +291,7 @@ export default async function PostsPage({
                         </time>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {post.isAiIctLesson ? (
+                        {post.isAiIctLesson && !isAiIctCategory(post.category) ? (
                           <StatusChip tone="special" icon="🤖">
                             AI/ICT活用
                           </StatusChip>

@@ -131,21 +131,23 @@ export default async function MyPage({
           <p className="mt-1 text-sm text-zinc-600">
             自分が投稿した授業実践を管理できます
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/t/${tenantSlug}/profile/edit`}
-            className="mt-3 inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+            className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
           >
             プロフィールを編集
           </Link>
+          {session.user.role !== "readonly" ? (
+            <Link
+              href={`/t/${tenantSlug}/posts/new`}
+              className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              新規投稿
+            </Link>
+          ) : null}
         </div>
-        {session.user.role !== "readonly" ? (
-          <Link
-            href={`/t/${tenantSlug}/posts/new`}
-            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            新規投稿
-          </Link>
-        ) : null}
       </div>
 
       {drafts.length > 0 ? (

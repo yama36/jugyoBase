@@ -57,7 +57,7 @@ export function categoryDisplayLabel(category: string | null | undefined): strin
     category === AI_ICT_CATEGORY ||
     category === LEGACY_BUSINESS_IMPROVEMENT_CATEGORY
   ) {
-    return "AI / ICT活用(授業での活用含む)";
+    return "AI / ICT活用";
   }
   return category ?? LESSON_CATEGORY;
 }

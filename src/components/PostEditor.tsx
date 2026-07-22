@@ -285,7 +285,7 @@ export function PostEditor(props: Props) {
             className={formSelectClass}
           >
             <option value="授業">授業</option>
-            <option value={AI_ICT_CATEGORY}>AI / ICT活用(授業での活用含む)</option>
+            <option value={AI_ICT_CATEGORY}>AI / ICT活用</option>
           </select>
         </div>
 

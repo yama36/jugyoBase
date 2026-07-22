@@ -19,6 +19,7 @@ import { StatusChip } from "@/components/StatusChip";
 import { editButtonClass } from "@/lib/form-classes";
 import {
   getPostSectionLabels,
+  isAiIctCategory,
   normalizePostCategory,
 } from "@/lib/post-category";
 
@@ -158,7 +159,7 @@ export default async function PostDetailPage({
           {titleText}
         </h1>
         <div className="flex flex-wrap items-center gap-1.5">
-          {post.isAiIctLesson ? (
+          {post.isAiIctLesson && !isAiIctCategory(category) ? (
             <StatusChip tone="special" icon="🤖">
               AI/ICT活用
             </StatusChip>

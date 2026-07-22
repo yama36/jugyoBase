@@ -521,13 +521,15 @@ function MyPageMock() {
           <p className="text-[11px] text-zinc-500">
             自分が投稿した授業実践を管理できます
           </p>
-          <span className="mt-2 inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-[11px] font-medium text-zinc-800 shadow-sm">
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center rounded-md bg-sky-600 px-2 py-1 text-[11px] font-medium text-white">
             プロフィールを編集
           </span>
+          <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
+            新規投稿
+          </span>
         </div>
-        <span className="rounded bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white">
-          新規投稿
-        </span>
       </div>
 
       <div className="space-y-2">

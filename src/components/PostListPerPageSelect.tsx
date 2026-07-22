@@ -23,7 +23,7 @@ export function PostListPerPageSelect({
       method="get"
       action={withBasePath(`/t/${tenantSlug}/posts`)}
       className="inline-flex"
-    >
+      >
       {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
       {filters.grade ? <input type="hidden" name="grade" value={filters.grade} /> : null}
       {filters.subject ? (

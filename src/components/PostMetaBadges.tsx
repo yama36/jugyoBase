@@ -4,7 +4,8 @@ import {
   getUnitBadgeClasses,
   NEUTRAL_BADGE_CLASSES,
 } from "@/lib/subject-grade-colors";
-import { categoryDisplayLabel } from "@/lib/lesson-post";
+import { categoryDisplayLabel, isAiIctCategory } from "@/lib/lesson-post";
+import { StatusChip } from "@/components/StatusChip";
 
 type PostMetaBadgesProps = {
   category?: string | null;
@@ -39,15 +40,22 @@ export function PostMetaBadges({
   const unitColor = getUnitBadgeClasses(subjectText);
   const categoryColor = NEUTRAL_BADGE_CLASSES;
   const padding = size === "md" ? "px-2.5 py-1" : "px-2 py-0.5";
+  const aiIct = isAiIctCategory(category);
 
   return (
     <>
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full text-xs ${padding} ${categoryColor.wrapper}`}
-      >
-        <span className={categoryColor.label}>カテゴリ</span>
-        <span className={categoryColor.value}>{categoryDisplayLabel(category)}</span>
-      </span>
+      {aiIct ? (
+        <StatusChip tone="special" icon="🤖" className={size === "md" ? "px-2.5 py-1" : ""}>
+          {categoryDisplayLabel(category)}
+        </StatusChip>
+      ) : (
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full text-xs ${padding} ${categoryColor.wrapper}`}
+        >
+          <span className={categoryColor.label}>カテゴリ</span>
+          <span className={categoryColor.value}>{categoryDisplayLabel(category)}</span>
+        </span>
+      )}
       {gradeText ? (
         <span
           className={`inline-flex items-center rounded-full text-xs ${padding} ${gradeColor.wrapper}`}

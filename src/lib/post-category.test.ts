@@ -24,13 +24,9 @@ describe("normalizePostSubject", () => {
 });
 
 describe("categoryDisplayLabel", () => {
-  it("shows the long AI/ICT label", () => {
-    expect(categoryDisplayLabel(AI_ICT_CATEGORY)).toBe(
-      "AI / ICT活用(授業での活用含む)",
-    );
-    expect(categoryDisplayLabel("業務改善")).toBe(
-      "AI / ICT活用(授業での活用含む)",
-    );
+  it("shows the short AI/ICT label", () => {
+    expect(categoryDisplayLabel(AI_ICT_CATEGORY)).toBe("AI / ICT活用");
+    expect(categoryDisplayLabel("業務改善")).toBe("AI / ICT活用");
   });
 });
 
