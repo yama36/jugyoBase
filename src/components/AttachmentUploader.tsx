@@ -17,6 +17,7 @@ import {
   compressVideoForUpload,
   shouldCompressVideo,
 } from "@/lib/compress-video";
+import { StatusNote } from "@/components/StatusNote";
 import {
   ALLOWED_EXTENSIONS_BY_KIND,
   ALLOWED_FILE_EXTENSIONS_FOR_INPUT,
@@ -301,19 +302,19 @@ export function AttachmentUploader(props: {
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-zinc-800">添付ファイル</h3>
       {!storageReady ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+        <StatusNote tone="warn">
           ファイルストレージ（S3 / MinIO）が未設定のため、添付をアップロードできません。
-          <code className="mx-0.5 rounded bg-amber-100 px-1 font-mono text-[11px]">S3_BUCKET</code>
+          <code className="mx-0.5 rounded bg-st-warn-fg/10 px-1 font-mono text-[11px]">S3_BUCKET</code>
           などを設定し、MinIO バケット（例: <code className="font-mono text-[11px]">jugyobase</code>
           ）を作成してから開発サーバーを再起動してください。
-        </p>
+        </StatusNote>
       ) : null}
       {props.malwareScanGate ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+        <StatusNote tone="warn">
           この環境ではマルウェア検査が有効です。登録直後は
           <strong className="font-semibold">検査が終わるまでダウンロードできません</strong>
           （一覧のサムネイルも検査完了後に表示されます）。
-        </p>
+        </StatusNote>
       ) : null}
 
       {attachments.length > 0 ? (

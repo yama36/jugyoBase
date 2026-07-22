@@ -92,9 +92,9 @@ const SUBJECT_BADGE: Record<string, BadgeClasses> = {
 };
 
 const NEUTRAL_BADGE: BadgeClasses = {
-  wrapper: "bg-zinc-100 border border-zinc-200",
-  label: "text-zinc-500",
-  value: "text-zinc-800 font-medium",
+  wrapper: "bg-st-none border border-border",
+  label: "text-text-sub",
+  value: "text-text font-medium",
 };
 
 export function getGradeBadgeClasses(_grade: string): BadgeClasses {
@@ -105,9 +105,12 @@ export function getSubjectBadgeClasses(subject: string): BadgeClasses {
   return SUBJECT_BADGE[subject] ?? NEUTRAL_BADGE;
 }
 
-/** 単元は教科に色を揃える */
-export function getUnitBadgeClasses(subject: string): BadgeClasses {
-  return getSubjectBadgeClasses(subject);
+/**
+ * 単元はニュートラル（ui-design: 色の競合相手を「教科のみ」に絞る）。
+ * 学年・カテゴリと同じく無地グレーにし、状態色（AI活用・検査中など）を埋もれさせない。
+ */
+export function getUnitBadgeClasses(_subject: string): BadgeClasses {
+  return NEUTRAL_BADGE;
 }
 
 export const NEUTRAL_BADGE_CLASSES: BadgeClasses = NEUTRAL_BADGE;

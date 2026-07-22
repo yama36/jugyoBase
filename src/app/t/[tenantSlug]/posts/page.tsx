@@ -15,6 +15,8 @@ import { PostListThumbnail } from "@/components/PostListThumbnail";
 import { PostListToolbar } from "@/components/PostListToolbar";
 import { PostMetaBadges } from "@/components/PostMetaBadges";
 import { SubjectSummaryMapLinkCard } from "@/components/SubjectSummaryMapLinkCard";
+import { EmptyState } from "@/components/EmptyState";
+import { StatusChip } from "@/components/StatusChip";
 
 export default async function PostsPage({
   params,
@@ -228,8 +230,29 @@ export default async function PostsPage({
 
       <ul className="space-y-3">
         {posts.length === 0 ? (
-          <li className="rounded border border-dashed border-zinc-300 bg-white p-6 text-center text-sm text-zinc-600">
-            まだ投稿がありません
+          <li>
+            {hasSearchParams ? (
+              <EmptyState
+                icon="🔎"
+                title="条件に一致する投稿がありません"
+                description="検索条件を変えるか、条件をクリアしてください。"
+                action={{ href: `/t/${tenantSlug}/posts`, label: "条件をクリア" }}
+              />
+            ) : (
+              <EmptyState
+                title="まだ投稿がありません"
+                description={
+                  canCreatePost
+                    ? "最初の授業・業務改善の事例を共有してみましょう。"
+                    : "投稿が追加されるとここに表示されます。"
+                }
+                action={
+                  canCreatePost
+                    ? { href: `/t/${tenantSlug}/posts/new`, label: "新規投稿" }
+                    : undefined
+                }
+              />
+            )}
           </li>
         ) : (
           posts.map((post) => {
@@ -242,7 +265,7 @@ export default async function PostsPage({
               <li key={post.id}>
                 <Link
                   href={`/t/${tenantSlug}/posts/${post.id}`}
-                  className="block rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300"
+                  className="block rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-1)] transition hover:border-text-sub/40"
                 >
                   <div className="flex gap-4">
                     {thumbAttachment ? (
@@ -254,17 +277,22 @@ export default async function PostsPage({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h2 className="font-medium text-zinc-900">
+                        <h2 className="font-medium text-text">
                           {post.title?.trim() || "（無題）"}
                         </h2>
                         <time
                           dateTime={post.createdAt.toISOString()}
-                          className="text-xs text-zinc-500"
+                          className="text-xs text-text-sub"
                         >
                           {post.createdAt.toLocaleDateString("ja-JP")}
                         </time>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {post.isAiIctLesson ? (
+                          <StatusChip tone="special" icon="🤖">
+                            AI/ICT活用
+                          </StatusChip>
+                        ) : null}
                         <PostMetaBadges
                           category={post.category}
                           grade={post.grade}
@@ -276,24 +304,24 @@ export default async function PostsPage({
                           }
                         />
                         {post.contentItem ? (
-                          <span className="mt-1.5 block text-xs text-zinc-500">
+                          <span className="mt-1.5 block text-xs text-text-sub">
                             {post.contentItem}
                           </span>
                         ) : null}
                       </div>
                       {post.tags.length > 0 ? (
-                        <p className="mt-2 text-xs text-sky-700">
+                        <p className="mt-2 text-xs text-primary">
                           {(post as unknown as { tags: { tag: { name: string } }[] }).tags
                             .map((pt) => `#${pt.tag.name}`)
                             .join(" ")}
                         </p>
                       ) : null}
-                      <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
+                      <div className="mt-2 flex items-center gap-3 text-xs text-text-sub">
                         <span>♥ {post._count?.likes ?? 0}</span>
                         <span>試した {post._count?.tried ?? 0}</span>
                         <span>💬 {post._count?.comments ?? 0}</span>
                         {thumbAttachment ? (
-                          <span className="text-zinc-500">
+                          <span className="text-text-sub">
                             添付: {postThumbKindLabel(thumbAttachment.kind)}
                           </span>
                         ) : null}

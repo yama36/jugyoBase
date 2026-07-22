@@ -3,6 +3,30 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ── ui-design トークン（コンテンツ最優先の実用UI・青基調）──────────
+     ハードコード禁止・必ず変数経由で使う。ここでは「語彙の追加」のみで、
+     既存の見た目は変えない（body 背景は従来どおり --background=白）。
+     状態色は「色＋アイコン＋ラベル」前提。白地で前景色(*-fg)と 4.5:1 以上。 */
+  --bg:        #f7f9fc;   /* ページ地（採用は各画面の移行時）*/
+  --surface:   #ffffff;   /* カード・行の面 */
+  --border:    #e3e8f0;
+  --text:      #1a2233;
+  --text-sub:  #5b6577;
+  --primary:   #2563eb;   /* 主要アクション・情報系 */
+
+  /* 状態（例外だけ色。通常＝無地）。必ずラベル/アイコン併用 */
+  --st-info:    #dbeafe;  --st-info-fg:    #1e40af;  /* 情報・進行中 */
+  --st-ok:      #dcfce7;  --st-ok-fg:      #166534;  /* 成功・承認 */
+  --st-special: #ede9fe;  --st-special-fg: #6d28d9;  /* 特別・強調（AI/ICT活用）*/
+  --st-warn:    #fef3c7;  --st-warn-fg:    #92400e;  /* 注意（検査中 等）*/
+  --st-none:    #f1f5f9;  --st-none-fg:    #64748b;  /* 無効・空・未読なし */
+  --st-danger:  #fee2e2;  --st-danger-fg:  #b91c1c;  /* 危険（DL抑止 等）*/
+
+  /* 4/8px グリッド・角丸・影（arbitrary value で参照: rounded-[var(--radius)] 等）*/
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px;
+  --radius: 10px;
+  --shadow-1: 0 1px 3px rgba(20, 30, 60, 0.08);
 }
 
 @theme inline {
@@ -10,14 +34,28 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ui-design セマンティックカラーを Tailwind ユーティリティ化。
+     例: bg-surface / text-text-sub / border-border / bg-st-warn / text-st-warn-fg
+     登録するだけでは見た目は変わらない（使った箇所にのみ効く）。 */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-sub: var(--text-sub);
+  --color-primary: var(--primary);
+
+  --color-st-info: var(--st-info);        --color-st-info-fg: var(--st-info-fg);
+  --color-st-ok: var(--st-ok);            --color-st-ok-fg: var(--st-ok-fg);
+  --color-st-special: var(--st-special);  --color-st-special-fg: var(--st-special-fg);
+  --color-st-warn: var(--st-warn);        --color-st-warn-fg: var(--st-warn-fg);
+  --color-st-none: var(--st-none);        --color-st-none-fg: var(--st-none-fg);
+  --color-st-danger: var(--st-danger);    --color-st-danger-fg: var(--st-danger-fg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ダークモードは当面無効化（ライト固定）。
+   従来は body 背景だけ黒へ切り替わり、コンポーネント側が dark: 未対応で
+   破綻していたため停止する。将来の再開は上記トークンにダーク値を足すだけでよい。 */
 
 body {
   background: var(--background);

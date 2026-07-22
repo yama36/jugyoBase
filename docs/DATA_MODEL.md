@@ -40,6 +40,8 @@ erDiagram
 
 **AI/ICT活用授業アンケート**（カテゴリ「授業」かつ `isAiIctLesson=true` のときのみ保存。公開投稿時は3項目必須。他教員には非公開）:
 
+> **決定事項（2026-07-21）** — `isAiIctLesson` の**フラグ自体**は一覧・投稿詳細に「🤖 AI/ICT活用」バッジとして**表示する**（校内で「どの授業がAI/ICT活用か」を共有するため）。ただし振り返り3項目（`transferStrength` / `transferSkillOrigins` / `transferSkillOriginOther` / `transferMotivation`）の**回答本体は引き続き他教員に非公開**（投稿詳細・PDFに出さない。管理者CSVのみ）。フラグ表示はこの非公開方針を変更しない。
+
 | 列 | 説明 |
 | --- | --- |
 | `isAiIctLesson` | AI/ICTを活用した授業としてアンケートに回答したか |
