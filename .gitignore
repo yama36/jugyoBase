@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ただし雛形はコミットする（実 .env は上の .env* で除外されたまま）
+!.env.example
 
 # vercel
 .vercel
