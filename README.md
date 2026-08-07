@@ -32,7 +32,7 @@ docker compose up -d
 `.env` を作成（`.env.example` を参照）。例:
 
 ```bash
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/jugyoBase"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/jugyoBase"
 AUTH_SECRET="$(openssl rand -base64 32)"
 AUTH_URL="http://localhost:3000"
 AUTH_GOOGLE_ID="（Google Cloud Console のクライアント ID）"

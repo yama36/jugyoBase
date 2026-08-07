@@ -11,7 +11,7 @@
 ## 手順 A: CLI スクリプト（推奨）
 
 ```bash
-export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/jugyoBase"
+export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/jugyoBase"
 npx tsx scripts/create-tenant-user.ts --slug my-school --name "○○小学校" --email teacher@school.example
 # ドメイン制限をかける場合
 npx tsx scripts/create-tenant-user.ts --slug my-school --name "○○小学校" --email teacher@school.example --domain school.example
