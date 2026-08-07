@@ -6,8 +6,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: jugyoBase
     ports:
-      # ホスト側は 5433。5432 は dekketsukun-pg が使うため衝突を避ける
-      - "5433:5432"
+      # ホスト側は 5433（5432 は dekketsukun-pg が使う）。ループバックのみに開く
+      - "127.0.0.1:5433:5432"
     volumes:
       - jugyoBase_pg:/var/lib/postgresql/data
 
@@ -20,8 +20,9 @@ services:
       # ブラウザからの presigned PUT（localhost:3000 → :9000）
       MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # ループバックのみ。LAN の実機から直接叩く必要が出たら一時的に外す
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - jugyoBase_minio:/data
 
